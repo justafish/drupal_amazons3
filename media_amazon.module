@@ -1,0 +1,99 @@
+<?php
+
+/**
+ * @file
+ * Provides S3 stream wrapper
+ */
+
+function media_amazon_libraries_info() {
+  $libraries['awssdk'] = array(
+    'title'             => 'AWS SDK for PHP',
+    'vendor url'        => 'http://aws.amazon.com/sdkforphp/',
+    'download url'      => 'http://aws.amazon.com/sdkforphp/',
+    'version callback'  => '_media_amazon_version',
+    'version arguments' => array(
+      'file'    => 'CHANGELOG.md',
+      'pattern' => '/# Changelog: (\d+)\.(\d+)/',
+    ),
+    'files' => array(
+      'php' => array(
+        'sdk.class.php',
+      ),
+    ),
+    'integration files' => array(
+      'media_amazon' => array(
+        'php' => array(
+          'sdk.class.php',
+        ),
+      ),
+    ),
+  );
+  
+  return $libraries;
+}
+
+/**
+ * Create a stream wrapper for S3
+ */
+function media_amazon_stream_wrappers() {
+  return array(
+    's3' => array(
+      'name' => 'Amazon S3',
+      'class' => 'MediaAmazonS3StreamWrapper',
+      'description' => t('Amazon Simple Storage Service'),
+    ),
+  );
+}
+
+function _media_amazon_version($library, $arguments) {
+  $file = fopen(DRUPAL_ROOT . '/' . $library['library path'] . '/' . $arguments['file'], 'r');
+  $version_string = fgets($file);
+  fclose($file);
+  preg_match($arguments['pattern'], $version_string, $matches);
+  if(isset($matches[0]) && isset($matches[1])) {
+    $version = $matches[0] . '.' . $matches[1];
+    return $version;
+  }
+  return;
+}
+
+function media_amazon_menu() {
+  $items = array();
+
+  $items['admin/config/media/amazon'] = array(
+    'title' => 'Amazon Web Services',
+    'description' => 'Configure your S3 credentials',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('media_amazon_admin'),
+    'access arguments' => array('access administration pages'),
+  );
+  
+  return $items;
+}
+
+function media_amazon_admin() {
+  $form = array();
+  
+  $form['media_amazon_s3_bucket'] = array(
+      '#type'           => 'textfield',
+      '#title'          => t('Bucket Name'),
+      '#default_value'  => variable_get('media_amazon_s3_bucket', ''),
+      '#required'       => TRUE,
+  );
+  
+  $form['media_amazon_key'] = array(
+      '#type'           => 'textfield',
+      '#title'          => t('Access Key ID'),
+      '#default_value'  => variable_get('media_amazon_key', ''),
+      '#required'       => TRUE,
+  );
+  
+  $form['media_amazon_key_secret'] = array(
+      '#type'           => 'password',
+      '#title'          => t('Secret Access Key'),
+      '#default_value'  => variable_get('media_amazon_key_secret', ''),
+      '#required'       => TRUE,
+  );
+  
+  return system_settings_form($form);
+}

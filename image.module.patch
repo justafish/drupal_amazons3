@@ -1,0 +1,32 @@
+--- image.module (saved version)
++++ (current document)
+@@ -84,7 +84,7 @@
+     'access callback' => TRUE,
+     'type' => MENU_CALLBACK,
+   );
+-  // Generate and deliver image derivatives of private files.
++  // Generate and deliver image derivatives files that are not delivered through public://.
+   // These image derivatives are always delivered through the menu system.
+   $items['system/files/styles/%image_style'] = array(
+     'title' => 'Generate image style',
+@@ -659,9 +659,9 @@
+   $image_uri = $scheme . '://' . $target;
+   $derivative_uri = image_style_path($style['name'], $image_uri);
+ 
+-  // If using the private scheme, let other modules provide headers and
++  // If not using the public scheme, let other modules provide headers and
+   // control access to the file.
+-  if ($scheme == 'private') {
++  if ($scheme != 'public') {
+     if (file_exists($derivative_uri)) {
+       file_download($scheme, file_uri_target($derivative_uri));
+     }
+@@ -800,7 +800,7 @@
+  */
+ function image_style_url($style_name, $path) {
+   $scheme = file_uri_scheme($path);
+-  if ($scheme === 'private') {
++  if ($scheme !== 'public') {
+     $target = file_uri_target($path);
+     $url = url('system/files/styles/' . $style_name . '/' . $scheme . '/' . $target, array('absolute' => TRUE));
+   }
