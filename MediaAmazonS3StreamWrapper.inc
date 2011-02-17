@@ -226,6 +226,10 @@ class MediaAmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   public function unlink($uri) {
     if($this->getS3()) {
       $response = $this->getS3()->delete_object($this->bucket, $this->getLocalPath($uri));
+      if($response->isOK()) {
+        $this->object = null;
+        $this->object_exists = null;
+      }
       return $response->isOK();
     }
     return false;    
@@ -311,11 +315,11 @@ class MediaAmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   }
   
   protected function getObject($uri) {
-    //if($this->object == null && $this->getS3() && $this->objectExists($uri)) {
-    //  $this->object = $this->getS3()->get_object($this->bucket, $this->getLocalPath($uri));
-    //}
     if($this->getS3() && $this->objectExists($uri)) {
-      return $this->getS3()->get_object($this->bucket, $this->getLocalPath($uri));
+      if(!$this->object) {
+        $this->object = $this->getS3()->get_object($this->bucket, $this->getLocalPath($uri));
+      }
+      return $this->object;
     }
     return false;
   }
@@ -342,8 +346,16 @@ class MediaAmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
         drupal_set_message('Unable to load the AWS SDK. Please check you have installed the library correctly and configured your S3 credentials.'. 'error');
       }
       else {
-        $this->s3 = new AmazonS3($key, $secret_key);
-        $this->bucket = $bucket;
+        try {
+         $this->s3 = new AmazonS3($key, $secret_key);
+         $this->bucket = $bucket;
+        }
+        catch(RequestCore_Exception $e){
+          drupal_set_message('There was a problem connecting to S3', 'error');
+        }
+        catch(Exception $e) {
+          drupal_set_message('There was a problem using S3');
+        }
       }
     }
     return $this->s3;

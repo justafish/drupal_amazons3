@@ -1,0 +1,57 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Media: Amazon module.
+ */
+ 
+/**
+ * Implements hook_schema().
+ */
+function media_amazon_schema() {
+  $schema['media_amazon_styles'] = array(
+    'description' => 'Stores information on whether derivatives have been created and uploaded for particular Styles.',
+    'fields' => array(
+      'dfid' => array(
+        'description' => 'The unique derivative file id.',
+        'type' => 'serial',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'fid' => array(
+        'description' => 'The {file_managed}.fid being referenced in this field.',
+        'type' => 'int',
+        'not null' => FALSE,
+        'unsigned' => TRUE,
+      ),
+      'uri' => array(
+        'description' => 'The URI to access the file (either local or remote).',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'filesize' => array(
+        'description' => 'The size of the file in bytes.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('dfid'),
+    'foreign keys' => array(
+      'fid' => array(
+        'table' => 'file_managed',
+        'columns' => array('fid' => 'fid'),
+      ),
+    ),
+    'indexes' => array(
+      'fid' => array('fid'),
+    ),
+    'unique keys' => array(
+      'uri' => array('uri'),
+    ),
+  );
+  return $schema;
+}

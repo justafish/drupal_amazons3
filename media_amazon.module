@@ -5,33 +5,6 @@
  * Provides S3 stream wrapper
  */
 
-function media_amazon_libraries_info() {
-  $libraries['awssdk'] = array(
-    'title'             => 'AWS SDK for PHP',
-    'vendor url'        => 'http://aws.amazon.com/sdkforphp/',
-    'download url'      => 'http://aws.amazon.com/sdkforphp/',
-    'version callback'  => '_media_amazon_version',
-    'version arguments' => array(
-      'file'    => 'CHANGELOG.md',
-      'pattern' => '/# Changelog: (\d+)\.(\d+)/',
-    ),
-    'files' => array(
-      'php' => array(
-        'sdk.class.php',
-      ),
-    ),
-    'integration files' => array(
-      'media_amazon' => array(
-        'php' => array(
-          'sdk.class.php',
-        ),
-      ),
-    ),
-  );
-  
-  return $libraries;
-}
-
 /**
  * Create a stream wrapper for S3
  */
@@ -43,18 +16,6 @@ function media_amazon_stream_wrappers() {
       'description' => t('Amazon Simple Storage Service'),
     ),
   );
-}
-
-function _media_amazon_version($library, $arguments) {
-  $file = fopen(DRUPAL_ROOT . '/' . $library['library path'] . '/' . $arguments['file'], 'r');
-  $version_string = fgets($file);
-  fclose($file);
-  preg_match($arguments['pattern'], $version_string, $matches);
-  if(isset($matches[0]) && isset($matches[1])) {
-    $version = $matches[0] . '.' . $matches[1];
-    return $version;
-  }
-  return;
 }
 
 function media_amazon_menu() {
@@ -96,4 +57,54 @@ function media_amazon_admin() {
   );
   
   return system_settings_form($form);
+}
+
+/**
+ * Implements hook_url_outbound_alter().
+ */
+function media_amazon_url_outbound_alter(&$path, &$options, $original_path) {
+  $style_url = 'http://' . variable_get('media_amazon_s3_bucket', '') . '.s3.amazonaws.com/styles/';
+  if(substr($path, 0, strlen($style_url)) == $style_url) {
+    if(!_media_amazon_style_exists($path)) {
+      // queue image to be uploaded
+      $queue = DrupalQueue::get('media_amazon_styles');
+      if(!$queue->createItem($path)) {
+        watchdog();
+      }
+      // deliver it through the private file system for now
+      $path = '/system/files/styles/' . substr($path, strlen($style_url));
+    }
+  }
+}
+
+function _media_amazon_style_exists($uri) {
+  $query = db_select('media_amazon_styles', 'm');
+  $query
+    ->condition('m.uri', $uri, '=')
+    ->fields('m');
+  $result = $query->countQuery()->execute()->fetchField();
+  return $result;
+}
+
+function media_amazon_cron() {
+  $queue = DrupalQueue::get('media_amazon_styles');
+}
+
+function media_amazon_cron_queue_info() {
+  $queues['media_amazon_styles'] = array(
+    'worker callback' => '_media_amazon_styles_upload',
+    'time' => 60,
+  );
+}
+
+/**
+ * Processes images and uploads them to Amazon S3
+ *
+ * @param $path
+ * The intended path for the generated object.
+ * This will also contain the style information.
+ */
+ 
+function _media_amazon_styles_upload($path) {
+  
 }

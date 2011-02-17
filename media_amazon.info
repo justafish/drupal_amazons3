@@ -1,8 +1,10 @@
+; $Id$
 name = Media Amazon
 description = Provides S3 stream wrapper class
 package = Media
 core = 7.x
 files[] = media_amazon.module
 files[] = MediaAmazonS3StreamWrapper.inc
+dependencies[] = awssdk
 dependencies[] = libraries
 
