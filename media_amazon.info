@@ -1,4 +1,3 @@
-; $Id$
 name = Media Amazon
 description = Provides S3 stream wrapper class
 package = Media
