@@ -18,12 +18,6 @@ function media_amazon_schema() {
         'not null' => TRUE,
         'unsigned' => TRUE,
       ),
-      'fid' => array(
-        'description' => 'The {file_managed}.fid being referenced in this field.',
-        'type' => 'int',
-        'not null' => FALSE,
-        'unsigned' => TRUE,
-      ),
       'uri' => array(
         'description' => 'The URI to access the file (either local or remote).',
         'type' => 'varchar',
@@ -31,12 +25,11 @@ function media_amazon_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
-      'filesize' => array(
-        'description' => 'The size of the file in bytes.',
+      'queued' => array(
         'type' => 'int',
-        'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
+        'description' => 'Time when this feed was queued for upload, 0 if not queued',
       ),
     ),
     'primary key' => array('dfid'),
@@ -54,4 +47,13 @@ function media_amazon_schema() {
     ),
   );
   return $schema;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function media_amazon_uninstall() {
+  variable_del('media_amazon_s3_bucket');
+  variable_del('media_amazon_key');
+  variable_del('media_amazon_key_secret');
 }
