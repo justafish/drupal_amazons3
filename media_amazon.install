@@ -4,50 +4,6 @@
  * @file
  * Install, update and uninstall functions for the Media: Amazon module.
  */
- 
-/**
- * Implements hook_schema().
- */
-function media_amazon_schema() {
-  $schema['media_amazon_styles'] = array(
-    'description' => 'Stores information on whether derivatives have been created and uploaded for particular Styles.',
-    'fields' => array(
-      'dfid' => array(
-        'description' => 'The unique derivative file id.',
-        'type' => 'serial',
-        'not null' => TRUE,
-        'unsigned' => TRUE,
-      ),
-      'uri' => array(
-        'description' => 'The URI to access the file (either local or remote).',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'queued' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-        'description' => 'Time when this feed was queued for upload, 0 if not queued',
-      ),
-    ),
-    'primary key' => array('dfid'),
-    'foreign keys' => array(
-      'fid' => array(
-        'table' => 'file_managed',
-        'columns' => array('fid' => 'fid'),
-      ),
-    ),
-    'indexes' => array(
-      'fid' => array('fid'),
-    ),
-    'unique keys' => array(
-      'uri' => array('uri'),
-    ),
-  );
-  return $schema;
-}
 
 /**
  * Implements hook_uninstall().
