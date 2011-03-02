@@ -6,6 +6,8 @@
  */
 
 /**
+ * Implements hook_stream_wrappers().
+ *
  * Create a stream wrapper for S3
  */
 function media_amazon_stream_wrappers() {
@@ -18,6 +20,9 @@ function media_amazon_stream_wrappers() {
   );
 }
 
+/**
+ * Implements hook_menu().
+ */
 function media_amazon_menu() {
   $items = array();
 
@@ -32,6 +37,9 @@ function media_amazon_menu() {
   return $items;
 }
 
+/**
+ * Implements hook_admin().
+ */
 function media_amazon_admin() {
   $form = array();
   
