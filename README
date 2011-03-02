@@ -1,6 +1,0 @@
-The Media: Amazon module allows the local file system to be replaced with S3. Uploads are saved into the drupal file table using D7's new file/stream wrapper system.
-
-INSTALLATION NOTES
-- Install the Amazon SDK for PHP into sites/all/libraries/awssdk
-- Patch modules/image/image.module
-- Once installed, change your default storage method to Amazon S3. You can also change the storage method for individual file and image fields.
