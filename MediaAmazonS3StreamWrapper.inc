@@ -354,7 +354,7 @@ class MediaAmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
           drupal_set_message('There was a problem connecting to S3', 'error');
         }
         catch(Exception $e) {
-          drupal_set_message('There was a problem using S3');
+          drupal_set_message('There was a problem using S3: ' . $e->getMessage(), 'error');
         }
       }
     }
