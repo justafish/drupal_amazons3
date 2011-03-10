@@ -181,7 +181,7 @@ class MediaAmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   public function stream_seek($offset, $whence) {
     switch($whence) {
       case SEEK_SET:
-        if($this->getS3() && $this->$this->getS3()->if_object_exists($this->bucket, $this->getLocalPath())) {
+        if($this->getS3() && $this->getS3()->if_object_exists($this->bucket, $this->getLocalPath())) {
           $object = $this->getS3()->get_object($this->bucket, $this->getLocalPath())->body;
           if ($offset < strlen($object) && $offset >= 0) {
             $this->position = $offset;
