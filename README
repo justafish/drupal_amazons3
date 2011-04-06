@@ -1,0 +1,13 @@
+Installation
+
+- Download and install the Libraries (7.x-2.x branch) and AWS SDK modules
+http://drupal.org/project/libraries
+http://drupal.org/project/awssdk
+(For installation of awssdk, you will need to download the Amazon SDK for PHP and place it in sites/all/libraries/awdsdk )
+http://aws.amazon.com/sdkforphp/
+
+- Configure your bucket setttings at /admin/config/media/amazon
+
+- Visit admin/config/media/file-system and set the Default download method to S3
+
+- Add a field of type File or Image etc and set the Upload destination to Amazon S3 in the Field Settings tab.
