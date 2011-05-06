@@ -314,6 +314,9 @@ class MediaAmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     $this->object_exists = true;
   }
   
+  /**
+   * Lazy loads the current object
+   */
   protected function getObject($uri) {
     if($this->getS3() && $this->objectExists($uri)) {
       if(!$this->object) {

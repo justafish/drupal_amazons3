@@ -43,13 +43,6 @@ function media_amazon_menu() {
 function media_amazon_admin() {
   $form = array();
   
-  $form['media_amazon_s3_bucket'] = array(
-      '#type'           => 'textfield',
-      '#title'          => t('Bucket Name'),
-      '#default_value'  => variable_get('media_amazon_s3_bucket', ''),
-      '#required'       => TRUE,
-  );
-  
   $form['media_amazon_key'] = array(
       '#type'           => 'textfield',
       '#title'          => t('Access Key ID'),
@@ -64,7 +57,43 @@ function media_amazon_admin() {
       '#required'       => TRUE,
   );
   
+  $form['media_amazon_s3_bucket'] = array(
+      '#type'           => 'textfield',
+      '#title'          => t('Bucket Name'),
+      '#default_value'  => variable_get('media_amazon_s3_bucket', ''),
+      '#required'       => TRUE,
+  );
+  
   return system_settings_form($form);
+}
+
+function media_amazon_admin_validate($form, &$form_state) {
+  $bucket = $form_state['values']['media_amazon_s3_bucket'];
+  $key = $form_state['values']['media_amazon_key'];
+  $secret_key = $form_state['values']['media_amazon_key_secret'];
+  
+  if(!libraries_load('awssdk')) {
+    form_set_error('media_amazon_key', t('Unable to load the AWS SDK. Please check you have installed the library correctly and configured your S3 credentials.'));
+  }
+  else {
+    try {
+      $s3 = new AmazonS3($key, $secret_key);
+      // test connection
+      $user_id = $s3->get_canonical_user_id();
+      if(!$user_id['id']) {
+        form_set_error('media_amazon_key', t('The S3 access credentials are invalid'));
+      }
+      else if(!$s3->if_bucket_exists($bucket)) {
+        form_set_error('media_amazon_s3_bucket', t('The bucket does not exist'));
+      }
+    }
+    catch(RequestCore_Exception $e){
+      form_set_error('media_amazon_key', t('There was a problem connecting to S3'));
+    }
+    catch(Exception $e) {
+      form_set_error('media_amazon_key', t('There was a problem using S3'));
+    }
+  }
 }
 
 /**
