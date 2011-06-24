@@ -87,18 +87,3 @@ function amazons3_admin_validate($form, &$form_state) {
     }
   }
 }
-
-/**
- * Implements hook_url_outbound_alter().
- */
-function amazons3_url_outbound_alter(&$path, &$options, $original_path) {
-  $style_path = variable_get('amazons3_bucket', '') . '.s3.amazonaws.com/styles/';
-  // strip protocol
-  $path_no_protocol = str_replace(array('http://', 'https://'), '', $path);
-  if(substr($path_no_protocol, 0, strlen($style_path)) == $style_path) {
-    $style_path_fragment = substr($path_no_protocol, strlen($style_path));
-    // deliver the image through the private file system
-    // also creates derivative on S3 at the same time
-    $path = url('system/files/styles/' . $style_path_fragment);
-  }
-}

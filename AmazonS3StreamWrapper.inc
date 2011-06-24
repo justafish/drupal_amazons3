@@ -58,6 +58,14 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     if(!isset($this->bucket)) {
       $this->bucket = $bucket = variable_get('amazons3_bucket', '');
     }
+    
+    // image styles support
+    $path = explode('/', $this->getLocalPath());
+    if($path[0] == 'styles' && !$this->objectExists($this->getLocalPath())) {
+      array_shift($path);
+      return url('system/files/styles/' . implode('/', $path), array('absolute' => true));
+    }
+    
     $url = 'http://' . $this->bucket . '.s3.amazonaws.com/' . $this->getLocalPath();
     return $url;
   }
