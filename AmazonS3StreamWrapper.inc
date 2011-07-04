@@ -275,8 +275,21 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   }
 
   public function rmdir($uri, $options) {
-    // s3 has no concept of directories
-    return false;
+    $localpath = $this->getLocalPath($uri);
+    $s3 = $this->getS3();
+    
+    $objects = $s3->get_object_list($this->bucket, array('prefix' => $localpath));
+    foreach($objects as $object) {
+      $s3->batch()->delete_object($this->bucket, $object);
+    }
+    $responses = $s3->batch()->send();
+
+    if($responses->areOK()) {
+      return true;
+    }
+    else {
+      return false;
+    }
   }
 
   public function url_stat($uri, $flags) {
