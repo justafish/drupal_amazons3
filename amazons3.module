@@ -38,6 +38,21 @@ function amazons3_menu() {
 }
 
 /**
+ * Implements hook_help().
+ */
+function amazons3_help($path, $arg) {
+  switch ($path) {
+    case 'admin/config/media/amazons3':
+    if (module_exists('awssdk_ui')) {
+      return '<p>' . t('Amazon Web Services authentication can be configured at the <a href="@awssdk_config">AWS SDK configuration page</a>.', array('@awssdk_config' => url('admin/config/media/awssdk'))) . '</p>';
+    }
+    else {
+      return '<p>' . t('Enable \'AWS SDK for PHP UI\' module to configure your Amazon Web Services authentication. Configuration can also be defined in the $conf array in settings.php.', array('@awssdk_config' => url('admin/config/media/awssdk'))) . '</p>';
+    }
+  }
+}
+
+/**
  * Implements hook_admin().
  */
 function amazons3_admin() {
