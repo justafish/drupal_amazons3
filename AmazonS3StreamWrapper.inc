@@ -66,7 +66,12 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
       return url('system/files/styles/' . implode('/', $path), array('absolute' => true));
     }
     
-    $url = 'http://' . $this->bucket . '.s3.amazonaws.com/' . $this->getLocalPath();
+    if(variable_get('amazons3_cname', 0)) {
+      $url = 'http://' . $this->bucket . '/' . $this->getLocalPath();
+    }
+    else {
+      $url = 'http://' . $this->bucket . '.s3.amazonaws.com/' . $this->getLocalPath();
+    }
     return $url;
   }
 
@@ -326,7 +331,13 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     if(!isset($this->bucket)) {
       $this->bucket = $bucket = variable_get('amazons3_bucket', '');
     }
-    $url = 'http://' . $this->bucket . '.s3.amazonaws.com';
+    
+    if(variable_get('amazons3_cname', 0)) {
+      $url = 'http://' . $this->bucket . '/' . $this->getLocalPath();
+    }
+    else {
+      $url = 'http://' . $this->bucket . '.s3.amazonaws.com';
+    }
     return $url;
   }
   

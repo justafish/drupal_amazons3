@@ -50,6 +50,13 @@ function amazons3_admin() {
       '#required'       => TRUE,
   );
   
+  $form['amazons3_cname'] = array(
+    '#type'           => 'checkbox',
+    '#title'          => t('Enable CNAME'),
+    '#description'    => t('Checking this box will use the above bucket name as the URL to serve files from e.g. the bucket would be named "mybucket.mydomain.com"'),
+    '#default_value'  => variable_get('amazons3_cname', 0),
+  );
+  
   return system_settings_form($form);
 }
 
