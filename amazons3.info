@@ -7,5 +7,4 @@ files[] = amazons3.module
 files[] = AmazonS3StreamWrapper.inc
 dependencies[] = awssdk
 dependencies[] = libraries
-php = 5.3
 configure = admin/config/media/amazons3

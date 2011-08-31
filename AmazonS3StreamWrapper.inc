@@ -1,72 +1,120 @@
 <?php
 
 /**
- * @file AmazonS3StreamWrapper.inc
- * Implement DrupalStreamWrapperInterface to provide an s3://
- * streamwrapper.
+ * @file
+ * Drupal stream wrapper implementation for Amazon S3
+ *
+ * Implements DrupalStreamWrapperInterface to provide an Amazon S3 wrapper with
+ * the s3:// prefix
  */
 class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
 
   /**
-   * Instance URI (stream).
-   *
-   * A stream is referenced as "s3://bucket/key".
-   *
-   * @var String
+   * @var String Instance URI referenced as "s3://bucket/key"
    */
   protected $uri;
   
   /**
-   * File pointer
-   *
-   * @var int
-   */
-  protected $position;
-  
-  /**
-   * S3 connection object
-   *
-   * @var AmazonS3
+   * @var AmazonS3 S3 connection object
    */
   protected $s3 = null;
   
   /**
-   * S3 bucket name
-   *
-   * @var string
+   * @var string S3 bucket name
    */
   protected $bucket;
   
   /**
-   * Object cache
-   *
-   * @var CFResponse
+   * @var int Current read/write position
    */
-  protected $object = null;
+  protected $position = 0;
   
-  protected $object_exists = null;
+  /**
+   * @var int Total size of the object as returned by S3 (Content-length)
+   */
+  protected $object_size = 0;
+  
+  /**
+   * @var string Object read/write buffer, typically a file
+   */
+  protected $buffer = null;
+  
+  /**
+   * @var boolean Whether $buffer is active as a write buffer
+   */
+  protected $buffer_write = false;
+  
+  /**
+   * @var int Buffer length
+   */
+  protected $buffer_length = 0;
+  
+  /**
+   * @var array directory listing
+   */
+  protected $dir = array();
+  
+  /**
+   * @var array Default map for determining file mime types
+   */
+  protected static $mapping = null;
+  
+  /**
+   * Object constructor
+   *
+   * Sets the bucket name
+   */
+  public function __construct() {
+    $this->bucket = $bucket = variable_get('amazons3_bucket', '');
+  }
+  
 
+  /**
+   * Sets the stream resource URI.
+   *
+   * URIs are formatted as "s3://bucket/key"
+   *
+   * @return
+   *   Returns the current URI of the instance.
+   */
   public function setUri($uri) {
     $this->uri = $uri;
   }
    
+  /**
+   * Returns the stream resource URI.
+   *
+   * URIs are formatted as "s3://bucket/key"
+   *
+   * @return
+   *   Returns the current URI of the instance.
+   */
   public function getUri() {
-     return $this->uri;
-   }
+    return $this->uri;
+  }
 
+  /**
+   * Returns a web accessible URL for the resource.
+   *
+   * In the format http://mybucket.amazons3.com/myfile.jpg
+   *
+   * @return
+   *   Returns a string containing a web accessible URL for the resource.
+   */
   public function getExternalUrl() {
-    if(!isset($this->bucket)) {
-      $this->bucket = $bucket = variable_get('amazons3_bucket', '');
-    }
     
-    // image styles support
+    // Image styles support
+    // Delivers the first request to an image from the private file system
+    // otherwise it returns an external URL to an image that has not been
+    // created yet
     $path = explode('/', $this->getLocalPath());
-    if($path[0] == 'styles' && !$this->objectExists($this->getLocalPath())) {
+    if ($path[0] == 'styles' && !$this->getS3()->if_object_exists($this->bucket, $this->getLocalPath())) {
       array_shift($path);
       return url('system/files/styles/' . implode('/', $path), array('absolute' => true));
     }
     
-    if(variable_get('amazons3_cname', 0)) {
+    // CNAME support for customising S3 URLs
+    if (variable_get('amazons3_cname', 0)) {
       $url = 'http://' . $this->bucket . '/' . $this->getLocalPath();
     }
     else {
@@ -75,43 +123,85 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     return $url;
   }
 
+  /**
+   * Determine a file's media type
+   *
+   * Uses Drupal's mimetype mappings. Returns 'application/octet-stream' if
+   * no match is found.
+   *
+   *  @return
+   *   Returns a string representing the file's MIME type
+   */
   public static function getMimeType($uri, $mapping = NULL) {
-     if (!isset($mapping)) {
-       // The default file map, defined in file.mimetypes.inc is quite big.
-       // We only load it when necessary.
-       include_once DRUPAL_ROOT . '/includes/file.mimetypes.inc';
-       $mapping = file_mimetype_mapping();
-     }
 
-     $extension = '';
-     $file_parts = explode('.', basename($uri));
+    // Load the default file map
+    if (!isset(self::$mapping)) {
+      include_once DRUPAL_ROOT . '/includes/file.mimetypes.inc';
+      self::$mapping = file_mimetype_mapping();
+    }
 
-     // Remove the first part: a full filename should not match an extension.
-     array_shift($file_parts);
+    $extension = '';
+    $file_parts = explode('.', basename($uri));
 
-     // Iterate over the file parts, trying to find a match.
-     // For my.awesome.image.jpeg, we try:
-     //   - jpeg
-     //   - image.jpeg, and
-     //   - awesome.image.jpeg
-     while ($additional_part = array_pop($file_parts)) {
-       $extension = strtolower($additional_part . ($extension ? '.' . $extension : ''));
-       if (isset($mapping['extensions'][$extension])) {
-         return $mapping['mimetypes'][$mapping['extensions'][$extension]];
-       }
-     }
+    // Remove the first part: a full filename should not match an extension.
+    array_shift($file_parts);
 
-     return 'application/octet-stream';
-   }
-
+    // Iterate over the file parts, trying to find a match.
+    // For my.awesome.image.jpeg, we try:
+    //   - jpeg
+    //   - image.jpeg, and
+    //   - awesome.image.jpeg
+    while ($additional_part = array_pop($file_parts)) {
+      $extension = strtolower($additional_part . ($extension ? '.' . $extension : ''));
+      if (isset(self::$mapping['extensions'][$extension])) {
+        return self::$mapping['mimetypes'][self::$mapping['extensions'][$extension]];
+      }
+    }
+    
+    return 'application/octet-stream';
+  }
+  
+  /**
+   * Changes permissions of the resource.
+   *
+   * This doesn't do anything for the moment so just returns FALSE;
+   *
+   * @param $mode
+   *   Integer value for the permissions. Consult PHP chmod() documentation
+   *   for more information.
+   *
+   * @return
+   *   Returns TRUE on success or FALSE on failure.
+   */
   public function chmod($mode) {
-     return TRUE;
-   }
+    return FALSE;
+  }
 
+  /**
+   * Returns canonical, absolute path of the resource.
+   *
+   * @return
+   *   Returns FALSE as this wrapper does not provide an implementation.
+   */
   public function realpath() {
-     return 's3://' . $this->getLocalPath();
-   }
+    return FALSE;
+  }
 
+  /**
+   * Gets the name of the directory from a given path.
+   *
+   * This method is usually accessed through drupal_dirname(), which wraps
+   * around the normal PHP dirname() function, which does not support stream
+   * wrappers.
+   *
+   * @param $uri
+   *   An optional URI.
+   *
+   * @return
+   *   A string containing the directory name, or FALSE if not applicable.
+   *
+   * @see drupal_dirname()
+   */
   public function dirname($uri = NULL) {
    list($scheme, $target) = explode('://', $uri, 2);
    $target  = $this->getTarget($uri);
@@ -124,134 +214,295 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    return $scheme . '://' . $dirname;
   }
 
+  /**
+   * Support for fopen(), file_get_contents(), file_put_contents() etc.
+   *
+   * @param $uri
+   *   A string containing the URI to the file to open.
+   * @param $mode
+   *   The file mode ("r", "wb" etc.).
+   * @param $options
+   *   A bit mask of STREAM_USE_PATH and STREAM_REPORT_ERRORS.
+   * @param $opened_path
+   *   A string containing the path actually opened.
+   *
+   * @return
+   *   Returns TRUE if file was opened successfully.
+   *
+   * @see http://php.net/manual/en/streamwrapper.stream-open.php
+   */
   public function stream_open($uri, $mode, $options, &$opened_path) {
     $this->uri = $uri;
-    if($this->getS3()) {
-      $this->position = 0;
-      return TRUE;
+    
+    // if this stream is being opened for writing, clear the object buffer
+    // Return true as we'll create the object on fflush call
+    if (strpbrk($mode, 'wax')) {
+      $this->clearBuffer();
+      $this->write_buffer = true;
+      return true;
     }
+    
+    else if($this->getS3()->if_object_exists($this->bucket, $this->getLocalPath($uri))) {
+      $this->clearBuffer();
+      $this->write_buffer = false;
+      $this->object_size = $this->getS3()->get_object_filesize($this->bucket, $this->getLocalPath($uri));
+      return true;
+    }
+    
+    return false;
   }
 
+  /**
+   * Support for fclose().
+   *
+   * Clears the object buffer and returns TRUE
+   *
+   * @return
+   *   TRUE
+   *
+   * @see http://php.net/manual/en/streamwrapper.stream-close.php
+   */
   public function stream_close() {
-    $this->pointer = 0;
-    $this->flushObject();
+    $this->clearBuffer();
     return TRUE;
   }
 
+  /**
+   * Support for flock().
+   *
+   * @param $operation
+   *   One of the following:
+   *   - LOCK_SH to acquire a shared lock (reader).
+   *   - LOCK_EX to acquire an exclusive lock (writer).
+   *   - LOCK_UN to release a lock (shared or exclusive).
+   *   - LOCK_NB if you don't want flock() to block while locking (not
+   *     supported on Windows).
+   *
+   * @return
+   *   returns TRUE if lock was successful
+   *
+   * @see http://php.net/manual/en/streamwrapper.stream-lock.php
+   */
   public function stream_lock($operation) {
-    return lock_aquire('amazons3:' . $this->uri);
+    /**
+    switch($operation) {
+      case LOCK_SH:
+      break;
+      
+      case LOCK_EX:
+      break;
+      
+      case LOCK_UN:
+      break;
+      
+      case LOCK_NB:
+      break;
+    }
+    **/
+    return false;
   }
 
+  /**
+   * Support for fread(), file_get_contents() etc.
+   *
+   * @param $count
+   *   Maximum number of bytes to be read.
+   *
+   * @return
+   *   The string that was read, or FALSE in case of an error.
+   *
+   * @see http://php.net/manual/en/streamwrapper.stream-read.php
+   */
   public function stream_read($count) {
-    if($this->getS3()) {
-      if($this->objectExists($this->uri)) {
-        $object = substr($this->getObject($this->uri)->body, $this->position, $count);
-        $this->position += $count;
-        return $object;
-      }
+    if ($this->getS3()->if_object_exists($this->bucket, $this->getLocalPath())) {
+      $object = substr($this->getS3()->get_object($this->bucket, $this->getLocalPath($this->uri))->body, $this->position, $count);
+      $this->position += $count;
+      return $object;  
     }
+    
     return FALSE;
   }
 
+  /**
+   * Support for fwrite(), file_put_contents() etc.
+   *
+   * @param $data
+   *   The string to be written.
+   *
+   * @return
+   *   The number of bytes written (integer).
+   *
+   * @see http://php.net/manual/en/streamwrapper.stream-write.php
+   */
   public function stream_write($data) {
-    if($this->getS3()) {
-      $left = '';
-      $right = '';
-      
-      if($this->objectExists($this->uri)) {
-        $object = $this->getObject($this->uri)->body;
-        $left = substr($object, 0, $this->position);
-        $right = substr($object, $this->position + strlen($data));
-      }
+    $data_length = strlen($data);
+    $this->buffer .= $data;
+    $this->buffer_length += $data_length;
+    $this->position += $data_length;
+    
+    return $data_length;
+  }
+
+  /**
+   * Support for feof().
+   *
+   * @return
+   *   TRUE if end-of-file has been reached.
+   *
+   * @see http://php.net/manual/en/streamwrapper.stream-eof.php
+   */
+  public function stream_eof() {
+    if (!$this->uri) {
+        return true;
+    }
+
+    return ($this->position >= $this->object_size);
+  }
+
+  /**
+   * Support for fseek().
+   *
+   * @param $offset
+   *   The byte offset to got to.
+   * @param $whence
+   *   SEEK_SET, SEEK_CUR, or SEEK_END.
+   *
+   * @return
+   *   TRUE on success.
+   *
+   * @see http://php.net/manual/en/streamwrapper.stream-seek.php
+   */
+  public function stream_seek($offset, $whence) {
+    switch($whence) {
+      case SEEK_CUR:
+        // Set position to current location plus $offset
+        $new_position = $this->position + $offset;
+        break;
+      case SEEK_END:
+        // Set position to eof plus $offset
+        $new_position = $this->object_size + $offset;
+        break;
+      case SEET_SET:
+      default:
+        // Set position equal to $offset
+        $new_position = $offset;
+        break;
+    }
+    
+    $ret = ($new_position >= 0 && $new_position <= $this->object_size);
+    if ($ret) {
+      $this->position = $new_position;
+    }
+    return $ret;
+  }
+
+  /**
+   * Support for fflush(). Flush current cached stream data to storage.
+   *
+   * @return
+   *   TRUE if data was successfully stored (or there was no data to store).
+   *
+   * @see http://php.net/manual/en/streamwrapper.stream-flush.php
+   */
+  public function stream_flush() {
+    if($this->write_buffer) {
       $response = $this->getS3()->create_object($this->bucket, $this->getLocalPath(), array(
-        'body' => $left . $data . $right,
+        'body' => $this->buffer,
         'acl' => AmazonS3::ACL_PUBLIC,
         'contentType' => AmazonS3StreamWrapper::getMimeType($this->uri),
       ));
       if($response->isOK()) {
-       $this->position += strlen($data);
-       
-       // update object cache
-       $object_cache = $this->getObject($this->uri);
-       $object_cache->body = $left . $data . $right;
-       $object_cache->acl = AmazonS3::ACL_PUBLIC;
-       $this->setObject($object_cache);
-       
-       return strlen($data); 
+        return TRUE;
       }
     }
+    $this->clearBuffer();
     return FALSE;
   }
 
-  public function stream_eof() {
-    if($this->s3 && $this->s3->if_object_exists($this->bucket, $this->getLocalPath())) {
-      $object = $this->s3->get_object($this->bucket, $this->getLocalPath())->body;
-      return $this->position >= strlen($object); 
-    }
-    return TRUE;
-  }
-
-  public function stream_seek($offset, $whence) {
-    switch($whence) {
-      case SEEK_SET:
-        if($this->getS3() && $this->getS3()->if_object_exists($this->bucket, $this->getLocalPath())) {
-          $object = $this->getS3()->get_object($this->bucket, $this->getLocalPath())->body;
-          if ($offset < strlen($object) && $offset >= 0) {
-            $this->position = $offset;
-            return TRUE;
-          }
-        }
-        return FALSE;
-      case SEEK_CUR:
-        if ($offset >= 0) {
-          $this->position += $offset;    
-          return TRUE;
-        }
-        return FALSE;
-      case SEEK_END:
-        if($this->getS3() && $this->getS3()->if_object_exists($this->bucket, $this->getLocalPath())) {
-          $object = $this->getS3()->get_object($this->bucket, $this->getLocalPath())->body;
-          if (strlen($object) + $offset >= 0) {
-            $this->position = strlen($object) + $offset;
-            return TRUE;
-          }
-        }
-        return FALSE;
-      default:
-        return FALSE;
-    }
-    return FALSE;
-  }
-
-  public function stream_flush() {
-    return TRUE;
-    $this->flushObject();
-  }
-
+  /**
+   * Support for ftell().
+   *
+   * @return
+   *   The current offset in bytes from the beginning of file.
+   *
+   * @see http://php.net/manual/en/streamwrapper.stream-tell.php
+   */
   public function stream_tell() {
     return $this->position;
   }
 
+  /**
+   * Support for fstat().
+   *
+   * @return
+   *   An array with file status, or FALSE in case of an error - see fstat()
+   *   for a description of this array.
+   *
+   * @see http://php.net/manual/en/streamwrapper.stream-stat.php
+   */
   public function stream_stat() {
     return $this->_stat();
   }
 
+  /**
+   * Support for unlink().
+   *
+   * @param $uri
+   *   A string containing the uri to the resource to delete.
+   *
+   * @return
+   *   TRUE if resource was successfully deleted.
+   *
+   * @see http://php.net/manual/en/streamwrapper.unlink.php
+   */
   public function unlink($uri) {
-    if($this->getS3()) {
-      $response = $this->getS3()->delete_object($this->bucket, $this->getLocalPath($uri));
-      if($response->isOK()) {
-        $this->object = null;
-        $this->object_exists = null;
-      }
-      return $response->isOK();
+    $response = $this->getS3()->delete_object($this->bucket, $this->getLocalPath($uri));
+    if($response->isOK()) {
+      return TRUE;
     }
-    return false;    
+    return FALSE;
   }
  
+  /**
+   * Support for rename().
+   *
+   * @param $from_uri,
+   *   The uri to the file to rename.
+   * @param $to_uri
+   *   The new uri for file.
+   *
+   * @return
+   *   TRUE if file was successfully renamed.
+   *
+   * @see http://php.net/manual/en/streamwrapper.rename.php
+   */
   public function rename($from_uri, $to_uri) {
-    return false;
+    $from = $this->getLocalPath($from_uri);
+    $to = $this->getLocalPath($to_uri);
+    
+    if ($this->getS3()->if_object_exists($this->bucket, $from) && !$this->getS3()->if_object_exists($this->bucket, $to)) {
+      // get a lock
+    }
+    
+    return FALSE;
   }
 
+  /**
+   * Returns the local writable target of the resource within the stream.
+   *
+   * This function should be used in place of calls to realpath() or similar
+   * functions when attempting to determine the location of a file. While
+   * functions like realpath() may return the location of a read-only file, this
+   * method may return a URI or path suitable for writing that is completely
+   * separate from the URI used for reading.
+   *
+   * @param $uri
+   *   Optional URI.
+   *
+   * @return
+   *   Returns a string representing a location suitable for writing of a file,
+   *   or FALSE if unable to write to the file such as with read-only streams.
+   */
   protected function getTarget($uri = NULL) {
     if (!isset($uri)) {
       $uri = $this->uri;
@@ -259,26 +510,52 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
 
     list($scheme, $target) = explode('://', $uri, 2);
 
-    // Remove erroneous leading or trailing, forward-slashes and backslashes.
-    // In the session:// scheme, there is never a leading slash on the target.
+    // Remove erroneous leading or trailing forward-slashes and backslashes.
     return trim($target, '\/');
   }
 
+  /**
+   * Support for mkdir().
+   *
+   * @param $uri
+   *   A string containing the URI to the directory to create.
+   * @param $mode
+   *   Permission flags - see mkdir().
+   * @param $options
+   *   A bit mask of STREAM_REPORT_ERRORS and STREAM_MKDIR_RECURSIVE.
+   *
+   * @return
+   *   TRUE if directory was successfully created.
+   *
+   * @see http://php.net/manual/en/streamwrapper.mkdir.php
+   */
   public function mkdir($uri, $mode, $options) {
     
     $recursive = (bool) ($options & STREAM_MKDIR_RECURSIVE);
     $localpath = $this->getLocalPath($uri);
     
-    // s3 has no concept of directories, but we emulate it by creating an object of size 0 with a trailing "/"
-    if($this->getS3()) {
-      $response = $this->getS3()->create_object($this->bucket, $localpath . '/', array('body' => ''));
-      if($response->isOk()) {
-        return true;
-      }
+    // s3 has no concept of directories, but we emulate it by creating an
+    // object of size 0 with a trailing "/"
+    $response = $this->getS3()->create_object($this->bucket, $localpath . '/', array('body' => ''));
+    if($response->isOk()) {
+      return TRUE;
     }
-    return false;
+    return FALSE;
   }
 
+  /**
+   * Support for rmdir().
+   *
+   * @param $uri
+   *   A string containing the URI to the directory to delete.
+   * @param $options
+   *   A bit mask of STREAM_REPORT_ERRORS.
+   *
+   * @return
+   *   TRUE if directory was successfully removed.
+   *
+   * @see http://php.net/manual/en/streamwrapper.rmdir.php
+   */
   public function rmdir($uri, $options) {
     $localpath = $this->getLocalPath($uri);
     $s3 = $this->getS3();
@@ -290,33 +567,157 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     $responses = $s3->batch()->send();
 
     if($responses->areOK()) {
-      return true;
+      return TRUE;
     }
-    else {
-      return false;
-    }
+    
+    return FALSE;
   }
 
+  /**
+   * Support for stat().
+   *
+   * @param $uri
+   *   A string containing the URI to get information about.
+   * @param $flags
+   *   A bit mask of STREAM_URL_STAT_LINK and STREAM_URL_STAT_QUIET.
+   *
+   * @return
+   *   An array with file status, or FALSE in case of an error - see fstat()
+   *   for a description of this array.
+   *
+   * @see http://php.net/manual/en/streamwrapper.url-stat.php
+   */
   public function url_stat($uri, $flags) {
     return $this->_stat($uri);
   }
 
+  /**
+   * Support for opendir().
+   *
+   * @param $uri
+   *   A string containing the URI to the directory to open.
+   * @param $options
+   *   Unknown (parameter is not documented in PHP Manual).
+   *
+   * @return
+   *   TRUE on success.
+   *
+   * @see http://php.net/manual/en/streamwrapper.dir-opendir.php
+   */
   public function dir_opendir($uri, $options) {
+    if ($uri == null) {
+      return FALSE;
+    }
+    else if(!$this->_is_dir($uri)) {
+      return FALSE;
+    }
+  
+    $this->dir = array();
+    $path = $this->getLocalPath($uri);
+    $truncated = TRUE;
+    $marker = '';
+    if(strlen($path) == 0) {
+      $prefix = $path;
+    }
+    else {
+      $prefix = $path . '/';
+    }
+    $prefix_length = strlen($prefix);
+    
+    while($truncated) {
+      $response = $this->getS3()->list_objects($this->bucket, array(
+          'delimiter' => '/',
+          'prefix' => $prefix,
+          'marker' => urlencode($marker),
+      ));
+      
+      if ($response->isOK() && (isset($response->body->CommonPrefixes) || isset($response->body->Contents)) ) {
+        
+        // Folders
+        
+        /**if (isset($response->body->CommonPrefixes)) {
+          foreach($response->body->CommonPrefixes as $prefix) {
+            $marker = substr($prefix->Prefix, $prefix_length, strlen($prefix->Prefix));
+            $this->dir[] = $marker;
+          } 
+        }**/
+        
+        // Files
+        if (is_array($response->body->Contents)) {
+          $contents = $response->body->Contents;
+        }
+        else {
+          $contents = array($response->body->Contents);
+        }
+        foreach($contents as $content) {
+          $key = $content->Key->to_string();
+          if(substr_compare($key, '/', -1, 1) !== 0) {
+            $info = pathinfo($key);
+            $file_name =  basename($key,'.'.$info['extension']);
+            $marker = basename($key);
+            $this->dir[] = $marker;
+          }  
+        }
+
+        if($response->body->IsTruncated == 'false') {
+          $truncated = FALSE;
+        }
+      }
+      else {
+        return FALSE;
+      }
+    }
+    return TRUE;
+  }
+  
+  /**
+   * Support for readdir().
+   *
+   * @return
+   *   The next filename, or FALSE if there are no more files in the directory.
+   *
+   * @see http://php.net/manual/en/streamwrapper.dir-readdir.php
+   */
+  public function dir_readdir() {
+    $filename = current($this->dir);
+    if ($filename !== false) {
+        next($this->dir);
+    }
+    return $filename;
+  }
+
+  /**
+   * Support for rewinddir().
+   *
+   * @return
+   *   TRUE on success.
+   *
+   * @see http://php.net/manual/en/streamwrapper.dir-rewinddir.php
+   */
+  public function dir_rewinddir() {
+    reset($this->dir);
     return TRUE;
   }
 
-  public function dir_readdir() {
-    return FALSE;
-  }
-
-  public function dir_rewinddir() {
-    return true;
-  }
-
+  /**
+   * Support for closedir().
+   *
+   * @return
+   *   TRUE on success.
+   *
+   * @see http://php.net/manual/en/streamwrapper.dir-closedir.php
+   */
   public function dir_closedir() {
-    return true;
+    $this->dir = array();
+    return TRUE;
   }
-    
+
+  /**
+   * Return the local filesystem path.
+   *
+   * @param $uri
+   *   Optional URI, supplied when doing a move or rename.
+   */    
   protected function getLocalPath($uri = NULL) {
     if (!isset($uri)) {
       $uri = $this->uri;
@@ -327,50 +728,42 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     return $path;
   }
 
+  /**
+   * Gets the path that the wrapper is responsible for.
+   *
+   * @return
+   *   String specifying the path.
+   */
   public function getDirectoryPath() {
-    if(!isset($this->bucket)) {
-      $this->bucket = $bucket = variable_get('amazons3_bucket', '');
-    }
-    
-    if(variable_get('amazons3_cname', 0)) {
-      $url = 'http://' . $this->bucket . '/' . $this->getLocalPath();
+    $cname = variable_get('amazons3_cname', FALSE);
+    if($cname) {
+      $path = 'http://' . $cname;
     }
     else {
-      $url = 'http://' . $this->bucket . '.s3.amazonaws.com';
+      $path = 'http://' . $this->bucket . '.s3.amazonaws.com';
     }
-    return $url;
-  }
-  
-  protected function setObject($object) {
-    $this->object = $object;
-    $this->object_exists = true;
+    return $path;
   }
   
   /**
-   * Lazy loads the current object
+   * Flush the object buffers
    */
-  protected function getObject($uri) {
-    if($this->getS3() && $this->objectExists($uri)) {
-      if(!$this->object) {
-        $this->object = $this->getS3()->get_object($this->bucket, $this->getLocalPath($uri));
-      }
-      return $this->object;
-    }
-    return false;
+  protected function clearBuffer() {
+    $this->position = 0;
+    $this->object_size = 0;
+    $this->buffer = null;
+    $this->buffer_write = false;
+    $this->buffer_length = 0;
   }
 
-  protected function flushObject() {
-    $this->object = null;
-    $this->object_exists = null;
-  }
-  
-  protected function objectExists($uri) {
-    if($this->object_exists == null && $this->getS3()) {
-      $this->object_exists = $this->getS3()->if_object_exists($this->bucket, $this->getLocalPath($uri));
-    }
-    return $this->object_exists;
-  }
-
+  /**
+   * Get the S3 connection object
+   *
+   * @return
+   *   S3 connection object (AmazonS3)
+   *
+   * @see http://docs.amazonwebservices.com/AWSSDKforPHP/latest/#i=AmazonS3
+   */
   protected function getS3() {
     if($this->s3 == null) {
       $key = variable_get('aws_key', '');
@@ -396,17 +789,31 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     return $this->s3;
   }
   
-  public function _stat($uri = null) {
+  /**
+   * Get file status
+   *
+   * @return
+   *   An array with file status, or FALSE in case of an error - see fstat()
+   *   for a description of this array.
+   *
+   * @see http://php.net/manual/en/streamwrapper.stream-stat.php
+   */
+  protected function _stat($uri = null) {
     
     if($uri == null) {
       $uri = $this->uri;
     }
-    $path = $this->getLocalPath($uri);
-    if($this->getS3() && ($this->getS3()->if_object_exists($this->bucket, $path) || $this->_is_dir($uri))) {
+    
+    if($uri != null) {
       
-      $mode = 0100000; // S_IFREG indicating file
-      $mode |= 0777; // everything is writeable
-      $stat = array(
+      $path = $this->getLocalPath($uri);
+      $is_dir = $this->_is_dir($uri);
+      if($this->getS3()->if_object_exists($this->bucket, $path) || $is_dir) {
+      
+        $mode = 0100000; // S_IFREG indicating file
+        $mode |= 0777; // everything is writeable
+      
+        $stat = array(
           '0' => 0,
           '1' => 0,
           '2' => $mode,
@@ -433,48 +840,61 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
           'ctime' => 0,
           'blksize' => 0,
           'blocks' => 0,
-      );
+        );
       
-      // check if directory
-      if($this->_is_dir($uri)) {
-        $stat['mode'] = 0040000; // S_IFDIR indicating directory
-        $stat['mode'] |= 0777;
-        $stat['2'] =  $stat['mode'];
-        return $stat;
-      }
-      else {
-        $response = $this->getS3()->get_object_metadata($this->bucket, $this->getLocalPath($uri));
-        if($response) {
-          if(isset($response['Size'])) {
-            $stat['size'] = $response['Size'];
-          }
-          if(isset($response['LastModified'])) {
-            $stat['mtime'] = $response['LastModified'];
-          }
+        if($is_dir) {
+          $stat['mode'] = 0040000; // S_IFDIR indicating directory
+          $stat['mode'] |= 0777;
+          $stat['2'] =  $stat['mode'];
+          
           return $stat;
+        }
+      
+        else {
+          $response = $this->getS3()->get_object_metadata($this->bucket, $this->getLocalPath($uri));
+          if($response) {
+            if(isset($response['Size'])) {
+              $stat['size'] = $response['Size'];
+            }
+            if(isset($response['LastModified'])) {
+              $stat['mtime'] = $response['LastModified'];
+            }
+            
+            return $stat;
+          }
         }
       }
     }
 
-    return false;
+    return FALSE;
   }
   
-  public function _is_dir($uri = null) {
+
+  /**
+   * Determine whether the $uri is a directory
+   *
+   * @param $uri
+   *   A string containing the uri to the resource to check. If none is given
+   *   defaults to $this->uri
+   *
+   * @return
+   *   TRUE if the resource is a directory
+   */
+  protected function _is_dir($uri = null) {
     if($uri == null) {
       $uri = $this->uri;
     }
-    $path = $this->getLocalPath($uri);
-    if($this->getS3()) {
-      // check if directory
+    if($uri != null) {
+      $path = $this->getLocalPath($uri);
       $response = $this->getS3()->list_objects($this->bucket, array(
           'prefix' => $path . '/',
           'max-keys' => 1,
       ));
       if($response && isset($response->body->Contents->Key)) {
-        return true;
+        return TRUE;
       }
     }
-    return false;
+    return FALSE;
   }
   
 }

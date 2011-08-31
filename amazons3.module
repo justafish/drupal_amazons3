@@ -60,7 +60,7 @@ function amazons3_admin() {
   
   $form['amazons3_bucket'] = array(
       '#type'           => 'textfield',
-      '#title'          => t('Bucket Name'),
+      '#title'          => t('Default Bucket Name'),
       '#default_value'  => variable_get('amazons3_bucket', ''),
       '#required'       => TRUE,
   );
@@ -118,4 +118,109 @@ function amazons3_image_style_flush($style) {
   if(isset($style->name) && strlen($style->name) > 0) {
     drupal_rmdir('s3://styles/' . $style->name);  
   }
+}
+
+function _amazons3_info_feld_settings($type) {
+  return array(
+    'amazons3_download_type' => 'http',
+    'amazons3_force_save_as' => false,
+    'amazons3_presigned_url' => false,
+    'amazons3_presigned_url_timeout' => 60,
+  );
+}
+
+function amazons3_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id) {
+  
+  if(isset($form['field']['settings']['uri_scheme']) && is_array($form['field']['settings']['uri_scheme'])) {
+    
+    $defaults = _amazons3_info_feld_settings($form['#field']['type']);
+    $settings = array_merge($defaults, $form['#field']['settings']);
+    
+    $form['field']['settings']['amazons3'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Amazon S3 Settings'),
+      '#weight' => 10,
+      '#collapsible' => false,
+      '#collapsed' => false,
+    );
+    
+    $form['field']['settings']['amazons3']['download_type'] = array(
+      '#type' => 'radios',
+      '#title' => t('Default download type'),
+      '#description' => t('Determines whether the download link will be a simple HTTP download or a torrent link. This setting may be overridden by other modules.'),
+      '#options' => array(
+        'http' => 'HTTP',
+        'torrent' => 'Torrent',
+      ),
+      '#default_value' => $settings['amazons3_download_type'],
+    );
+    
+    $form['field']['settings']['amazons3']['force_save_as'] = array(
+      '#type'           => 'checkbox',
+      '#title'          => t('Force save-as rather than playing content.'),
+      '#description'    => t('Force user to save file by using Content-disposition header. Prevents autoplay of media.'),
+      '#states'         => array(
+        'visible' => array(
+            ':input[name=amazons3_use_presigned_url]' => array('checked' => TRUE),
+          )
+        ),
+      '#default_value' => $settings['amazons3_force_save_as'],  
+    );
+  
+    $form['field']['settings']['amazons3']['presigned_url'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Create presigned authenticated URL with timeout'),
+      '#description' => t('If checked, a URL will be created that times out in a designated number of seconds. This setting may be overridden by other modules.'),
+    );
+  
+    $form['field']['settings']['amazons3']['presigned_url_timeout'] = array(
+      '#type'           => 'textfield',
+      '#title'          => t('Presigned URL timeout'),
+      '#description'    => t('The time in seconds that the generated URL should be valid.'),
+      '#size'           => 4,
+      '#states'         => array(
+        'visible' => array(
+          ':input[id=edit-field-settings-amazons3-presigned-url]' => array('checked' => TRUE),
+        )
+      ),
+      '#default_value' => $settings['amazons3_presigned_url_timeout'],
+    );
+    
+    $form['#submit'][] = 'amazons3_field_edit_form_submit';
+  }
+}
+
+/**
+ * Form submit handler for field instance settings form.
+ */
+function amazons3_field_edit_form_submit($form, &$form_state) {
+/**  $instance = $form_state['values']['instance'];
+  $field = $form_state['values']['field'];
+
+  // Update any field settings that have changed.
+  $field_source = field_info_field($instance['field_name']);
+  $field = array_merge($field_source, $field);
+  field_update_field($field);
+
+  // Handle the default value.
+  if (isset($form['instance']['default_value_widget'])) {
+    $element = $form['instance']['default_value_widget'];
+
+    // Extract field values.
+    $items = array();
+    field_default_extract_form_values(NULL, NULL, $field, $instance, LANGUAGE_NONE, $items, $element, $form_state);
+    field_default_submit(NULL, NULL, $field, $instance, LANGUAGE_NONE, $items, $element, $form_state);
+
+    $instance['default_value'] = $items ? $items : NULL;
+  }
+
+  // Retrieve the stored instance settings to merge with the incoming values.
+  $instance_source = field_read_instance($instance['entity_type'], $instance['field_name'], $instance['bundle']);
+  $instance = array_merge($instance_source, $instance);
+  field_update_instance($instance);
+
+  drupal_set_message(t('Saved %label configuration.', array('%label' => $instance['label'])));
+
+  $form_state['redirect'] = field_ui_next_destination($instance['entity_type'], $instance['bundle']);
+  **/
 }
