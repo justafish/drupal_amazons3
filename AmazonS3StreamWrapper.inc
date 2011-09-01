@@ -630,36 +630,36 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
           'prefix' => $prefix,
           'marker' => urlencode($marker),
       ));
-      
-      if ($response->isOK() && (isset($response->body->CommonPrefixes) || isset($response->body->Contents)) ) {
+      if ($response->isOK()) {
         
         // Folders
-        
-        /**if (isset($response->body->CommonPrefixes)) {
+        if (isset($response->body->CommonPrefixes)) {
           foreach($response->body->CommonPrefixes as $prefix) {
-            $marker = substr($prefix->Prefix, $prefix_length, strlen($prefix->Prefix));
-            $this->dir[] = $marker;
-          } 
-        }**/
+            $marker = substr($prefix->Prefix, $prefix_length, strlen($prefix->Prefix) - 1);
+            if(strlen($marker) > 0) {
+              $this->dir[] = $marker;
+              print_r($marker);  
+            }
+          }
+        }
         
         // Files
-        if (is_array($response->body->Contents)) {
-          $contents = $response->body->Contents;
-        }
-        else {
-          $contents = array($response->body->Contents);
-        }
-        foreach($contents as $content) {
-          $key = $content->Key->to_string();
-          if(substr_compare($key, '/', -1, 1) !== 0) {
-            $info = pathinfo($key);
-            $file_name =  basename($key,'.'.$info['extension']);
-            $marker = basename($key);
-            $this->dir[] = $marker;
-          }  
+        if(isset($response->body->Contents)) {
+          $contents = $response->body->to_stdClass()->Contents;
+          if (!is_array($contents)) {
+            $contents = array($contents);
+          }
+
+          foreach($contents as $content) {
+            $key = $content->Key;
+            if(substr_compare($key, '/', -1, 1) !== 0) {
+              $marker = basename($key);
+              $this->dir[] = $marker;
+            }  
+          }
         }
 
-        if($response->body->IsTruncated == 'false') {
+        if(!isset($response->body->IsTruncated) || $response->body->IsTruncated == 'false') {
           $truncated = FALSE;
         }
       }
