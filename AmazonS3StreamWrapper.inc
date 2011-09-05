@@ -632,13 +632,15 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
       ));
       if ($response->isOK()) {
         
+        $this->dir[] = '.';
+        $this->dir[] = '..';
+        
         // Folders
         if (isset($response->body->CommonPrefixes)) {
           foreach($response->body->CommonPrefixes as $prefix) {
-            $marker = substr($prefix->Prefix, $prefix_length, strlen($prefix->Prefix) - 1);
+            $marker = substr($prefix->Prefix, $prefix_length, strlen($prefix->Prefix) - $prefix_length - 1);
             if(strlen($marker) > 0) {
               $this->dir[] = $marker;
-              print_r($marker);  
             }
           }
         }
