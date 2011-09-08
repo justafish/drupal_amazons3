@@ -382,7 +382,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
         // Set position to eof plus $offset
         $new_position = $this->object_size + $offset;
         break;
-      case SEET_SET:
+      case SEEK_SET:
       default:
         // Set position equal to $offset
         $new_position = $offset;
