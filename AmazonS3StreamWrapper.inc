@@ -284,21 +284,6 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.stream-lock.php
    */
   public function stream_lock($operation) {
-    /**
-    switch($operation) {
-      case LOCK_SH:
-      break;
-      
-      case LOCK_EX:
-      break;
-      
-      case LOCK_UN:
-      break;
-      
-      case LOCK_NB:
-      break;
-    }
-    **/
     return false;
   }
 
