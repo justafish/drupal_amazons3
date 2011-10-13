@@ -97,7 +97,7 @@ function amazons3_admin_validate($form, &$form_state) {
     }
     catch(RequestCore_Exception $e){
       if(strstr($e->getMessage(), 'SSL certificate problem')) {
-        form_set_error('amazons3_bucket', t('There was a problem with the SSL certificate. Try setting AWS_CERTIFICATE_AUTHORITY to true in libraries/awssdk/config-sample.inc.php'));  
+        form_set_error('amazons3_bucket', t('There was a problem with the SSL certificate. Try setting AWS_CERTIFICATE_AUTHORITY to true in libraries/awssdk/config.inc.php'));  
       }
       else {
         form_set_error('amazons3_bucket', t('There was a problem connecting to S3'));  
