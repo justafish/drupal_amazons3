@@ -174,7 +174,23 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    *   Returns TRUE on success or FALSE on failure.
    */
   public function chmod($mode) {
-    return FALSE;
+    $modes = str_split($mode);
+    if($modes[0] == '0') {
+      array_shift($modes);
+    }
+    if(count($modes) != 3) {
+      return FALSE;
+    }
+    
+    if(intval($modes[2]) >= 4) {
+      $response = $this->getS3()->set_object_acl($this->bucket, $this->getLocalPath(), AmazonS3::ACL_PUBLIC);
+      return $response->isOK();
+    }
+    else {
+      $response = $this->getS3()->set_object_acl($this->bucket, $this->getLocalPath(), AmazonS3::ACL_PRIVATE);
+      return $response->isOK();
+    }
+    
   }
 
   /**
