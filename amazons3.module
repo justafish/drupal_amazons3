@@ -68,8 +68,20 @@ function amazons3_admin() {
   $form['amazons3_cname'] = array(
     '#type'           => 'checkbox',
     '#title'          => t('Enable CNAME'),
-    '#description'    => t('Checking this box will use the above bucket name as the URL to serve files from e.g. the bucket would be named "mybucket.mydomain.com"'),
+    '#description'    => t('Serve files from a custom domain by using an appropriately named bucket e.g. "mybucket.mydomain.com"'),
     '#default_value'  => variable_get('amazons3_cname', 0),
+  );
+  
+  $form['amazons3_domain'] = array(
+      '#type'           => 'textfield',
+      '#title'          => t('CDN Domain Name'),
+      '#description'    => t('If serving files from CloudFront then the bucket name can differ from the domain name.'),
+      '#default_value'  => variable_get('amazons3_domain', ''),
+      '#states'         => array(
+        'visible' => array(
+          ':input[id=edit-amazons3-cname]' => array('checked' => TRUE),
+        )
+      ),
   );
   
   return system_settings_form($form);

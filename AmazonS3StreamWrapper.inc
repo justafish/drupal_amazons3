@@ -25,6 +25,11 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   protected $bucket;
   
   /**
+   * @var string Domain we use to access files over http
+   */
+  protected $domain;
+  
+  /**
    * @var int Current read/write position
    */
   protected $position = 0;
@@ -66,6 +71,20 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    */
   public function __construct() {
     $this->bucket = $bucket = variable_get('amazons3_bucket', '');
+    
+    // CNAME support for customising S3 URLs
+    if (variable_get('amazons3_cname', 0)) {
+      $domain = variable_get('amazons3_domain', '');
+      if(strlen($domain) > 0) {
+        $this->domain = 'http://' . $domain;
+      }
+      else {
+        $this->domain = 'http://' . $this->bucket;
+      }
+    }
+    else {
+      $this->domain = 'http://' . $this->bucket . '.s3.amazonaws.com';
+    }
   }
   
 
@@ -113,13 +132,8 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
       return url('system/files/styles/' . implode('/', $path), array('absolute' => true));
     }
     
-    // CNAME support for customising S3 URLs
-    if (variable_get('amazons3_cname', 0)) {
-      $url = 'http://' . $this->bucket . '/' . $this->getLocalPath();
-    }
-    else {
-      $url = 'http://' . $this->bucket . '.s3.amazonaws.com/' . $this->getLocalPath();
-    }
+    $url = $this->domain . '/' . $this->getLocalPath();
+
     return $url;
   }
 
@@ -738,14 +752,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    *   String specifying the path.
    */
   public function getDirectoryPath() {
-    $cname = variable_get('amazons3_cname', FALSE);
-    if($cname) {
-      $path = 'http://' . $cname;
-    }
-    else {
-      $path = 'http://' . $this->bucket . '.s3.amazonaws.com';
-    }
-    return $path;
+    return $this->domain;
   }
   
   /**
