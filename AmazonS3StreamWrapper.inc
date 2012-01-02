@@ -195,16 +195,21 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     if(count($modes) != 3) {
       return FALSE;
     }
-    
+
     if(intval($modes[2]) >= 4) {
-      $response = $this->getS3()->set_object_acl($this->bucket, $this->getLocalPath(), AmazonS3::ACL_PUBLIC);
-      return $response->isOK();
+      $acl = AmazonS3::ACL_PUBLIC;
     }
     else {
-      $response = $this->getS3()->set_object_acl($this->bucket, $this->getLocalPath(), AmazonS3::ACL_PRIVATE);
-      return $response->isOK();
+      $acl = AmazonS3::ACL_PRIVATE;
     }
-    
+
+    $local_path = $this->getLocalPath();
+    if($this->_is_dir() && (substr($local_path, -1) != '/')) {
+      $local_path .= '/';
+    }
+
+    $response = $this->getS3()->set_object_acl($this->bucket, $local_path, $acl);
+    return $response->isOK();    
   }
 
   /**
