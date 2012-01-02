@@ -781,16 +781,17 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    */
   protected function getS3() {
     if($this->s3 == null) {
-      $key = variable_get('aws_key', '');
-      $secret_key = variable_get('aws_secret_key', '');
       $bucket = variable_get('amazons3_bucket', '');
     
-      if(!libraries_load('awssdk') && !isset($key) && !isset($secret_key) && !isset($bucket)) {
+      if(!libraries_load('awssdk') && !isset($bucket)) {
         drupal_set_message('Unable to load the AWS SDK. Please check you have installed the library correctly and configured your S3 credentials.'. 'error');
+      }
+      else if(!isset($bucket)) {
+        drupal_set_message('Bucket name not configured.'. 'error');
       }
       else {
         try {
-         $this->s3 = new AmazonS3($key, $secret_key);
+         $this->s3 = new AmazonS3();
          $this->bucket = $bucket;
         }
         catch(RequestCore_Exception $e){
