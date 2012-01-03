@@ -828,35 +828,21 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
       
         $mode = 0100000; // S_IFREG indicating file
         $mode |= 0777; // everything is writeable
-      
-        $stat = array(
-          '0' => 0,
-          '1' => 0,
-          '2' => $mode,
-          '3' => 0,
-          '4' => 0,
-          '5' => 0,
-          '6' => 0,
-          '7' => 0,
-          '8' => 0,
-          '9' => 0,
-          '10' => 0,
-          '11' => 0,
-          '12' => 0,
-          'dev' => 0,
-          'ino' => 0,
-          'mode' => $mode,
-          'nlink' => 0,
-          'uid' => 0,
-          'gid' => 0,
-          'rdev' => 0,
-          'size' => 0,
-          'atime' => 0,
-          'mtime' => 0,
-          'ctime' => 0,
-          'blksize' => 0,
-          'blocks' => 0,
-        );
+        
+        $stat = array();
+    		$stat[0] = $stat['dev'] = 0;
+    		$stat[1] = $stat['ino'] = 0;
+    		$stat[2] = $stat['mode'] = $mode;
+    		$stat[3] = $stat['nlink'] = 0;
+    		$stat[4] = $stat['uid'] = 0;
+    		$stat[5] = $stat['gid'] = 0;
+    		$stat[6] = $stat['rdev'] = 0;
+    		$stat[7] = $stat['size'] = 0;
+    		$stat[8] = $stat['atime'] = 0;
+    		$stat[9] = $stat['mtime'] = 0;
+    		$stat[10] = $stat['ctime'] = 0;
+    		$stat[11] = $stat['blksize'] = 0;
+    		$stat[12] = $stat['blocks'] = 0;
       
         if($is_dir) {
           $stat['mode'] = 0040000; // S_IFDIR indicating directory
@@ -870,10 +856,16 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
           $response = $this->getS3()->get_object_metadata($this->bucket, $this->getLocalPath($uri));
           if($response) {
             if(isset($response['Size'])) {
-              $stat['size'] = $response['Size'];
+              $stat[7] = $stat['size'] = $response['Size'];
             }
             if(isset($response['LastModified'])) {
-              $stat['mtime'] = $response['LastModified'];
+              $last_modified = date('U', strtotime((string) $response['LastModified']));
+              $stat[8] = $stat['atime'] = $last_modified;
+              $stat[9] = $stat['mtime'] = $last_modified;
+              $stat[10] = $stat['ctime'] = $last_modified;
+            }
+            if(isset($response['Owner']['ID'])) {
+              $stat[4] = $stat['uid'] = (string) $response['Owner']['ID'];
             }
             
             return $stat;
