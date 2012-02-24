@@ -12,4 +12,121 @@ function amazons3_uninstall() {
   variable_del('amazons3_bucket');
   variable_del('amazons3_cname');
   variable_del('amazons3_domain');
+  variable_del('amazons3_cache');
 }
+
+/**
+ * Implements hook_schema().
+ */
+function amazons3_schema() {
+  $schema['amazons3_file'] = array(
+    'description' => 'Stores information for uploaded Amazon S3 files.',
+    'fields' => array(
+      'uri' => array(
+        'description' => 'The URI to access the file (either local or remote).',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'filesize' => array(
+        'description' => 'The size of the file in bytes.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'timestamp' => array(
+        'description' => 'UNIX timestamp for when the file was added.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'dir' => array(
+        'description' => 'Boolean indicating whether or not this object is a directory.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'mode' => array(
+        'description' => 'The file mode returned by the stat function.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'uid' => array(
+        'description' => 'The uid of the user who is associated with the file (not Drupal uid).',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'timestamp' => array('timestamp'),
+    ),
+    'primary key' => array('uri'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Install the caching table
+ */
+function amazons3_update_7100($sandbox) {
+  $schema['amazons3_file'] = array(
+    'description' => 'Stores information for uploaded Amazon S3 files.',
+    'fields' => array(
+      'uri' => array(
+        'description' => 'The URI to access the file (either local or remote).',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'filesize' => array(
+        'description' => 'The size of the file in bytes.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'timestamp' => array(
+        'description' => 'UNIX timestamp for when the file was added.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'dir' => array(
+        'description' => 'Boolean indicating whether or not this object is a directory.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'mode' => array(
+        'description' => 'The file mode returned by the stat function.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'uid' => array(
+        'description' => 'The uid of the user who is associated with the file (not Drupal uid).',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'timestamp' => array('timestamp'),
+    ),
+    'primary key' => array('uri'),
+  );
+  db_create_table('amazons3_file', $schema['amazons3_file']);
+}
+

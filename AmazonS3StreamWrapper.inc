@@ -65,6 +65,11 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   protected static $mapping = null;
 
   /**
+   * @var boolean Whether local file metadata caching is on
+   */
+  protected $caching = FALSE;
+
+  /**
    * Object constructor
    *
    * Sets the bucket name
@@ -84,6 +89,11 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     }
     else {
       $this->domain = 'http://' . $this->bucket . '.s3.amazonaws.com';
+    }
+
+    // Check whether local file caching is turned on
+    if (variable_get('amazons3_cache', FALSE)) {
+      $this->caching = TRUE;
     }
   }
 
@@ -127,9 +137,11 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     // otherwise it returns an external URL to an image that has not been
     // created yet
     $path = explode('/', $this->getLocalPath());
-    if ($path[0] == 'styles' && !$this->getS3()->if_object_exists($this->bucket, $this->getLocalPath())) {
-      array_shift($path);
-      return url('system/files/styles/' . implode('/', $path), array('absolute' => true));
+    if ($path[0] == 'styles') {
+      if (!$this->_amazons3_get_object($this->uri, $this->caching)) {
+        array_shift($path);
+        return url('system/files/styles/' . implode('/', $path), array('absolute' => true));
+      }
     }
 
     $url = $this->domain . '/' . $this->getLocalPath();
@@ -273,18 +285,18 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     // Return true as we'll create the object on fflush call
     if (strpbrk($mode, 'wax')) {
       $this->clearBuffer();
-      $this->write_buffer = true;
-      return true;
+      $this->write_buffer = TRUE;
+      return TRUE;
     }
-
-    else if($this->getS3()->if_object_exists($this->bucket, $this->getLocalPath($uri))) {
+    $metadata = $this->_amazons3_get_object($uri, $this->caching);
+    if ($metadata) {
       $this->clearBuffer();
       $this->write_buffer = false;
-      $this->object_size = $this->getS3()->get_object_filesize($this->bucket, $this->getLocalPath($uri));
-      return true;
+      $this->object_size = $metadata['filesize'];
+      return TRUE;
     }
 
-    return false;
+    return FALSE;
   }
 
   /**
@@ -478,6 +490,10 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   public function unlink($uri) {
     $response = $this->getS3()->delete_object($this->bucket, $this->getLocalPath($uri));
     if($response->isOK()) {
+      // Delete from cache
+      db_delete('amazons3_file')
+        ->condition('uri', $uri)
+        ->execute();
       return TRUE;
     }
     return FALSE;
@@ -500,9 +516,12 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     $from = $this->getLocalPath($from_uri);
     $to = $this->getLocalPath($to_uri);
 
+    /**
+     * @todo Finish this...
     if ($this->getS3()->if_object_exists($this->bucket, $from) && !$this->getS3()->if_object_exists($this->bucket, $to)) {
       // get a lock
     }
+    **/
 
     return FALSE;
   }
@@ -581,15 +600,21 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     $s3 = $this->getS3();
 
     $objects = $s3->get_object_list($this->bucket, array('prefix' => $localpath));
-    foreach($objects as $object) {
-      $s3->batch()->delete_object($this->bucket, $object);
-    }
-    $responses = $s3->batch()->send();
+    if (gettype($objects) === 'array') {
+      $or = db_or();
+      foreach($objects as $object) {
+        $s3->batch()->delete_object($this->bucket, $object);
+        // Delete from cache
+        $object_uri = 's3://' . rtrim($object,'/');
+        $or->condition('uri', $object_uri, '=');
+      }
+      db_delete('amazons3_file')->condition($or)->execute();
+      $responses = $s3->batch()->send();
 
-    if($responses->areOK()) {
-      return TRUE;
+      if($responses->areOK()) {
+        return TRUE;
+      }
     }
-
     return FALSE;
   }
 
@@ -814,73 +839,43 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    *
    * @see http://php.net/manual/en/streamwrapper.stream-stat.php
    */
-  protected function _stat($uri = null) {
-
-    if($uri == null) {
+  protected function _stat($uri = NULL) {
+    if(!isset($uri)) {
       $uri = $this->uri;
     }
+    $metadata = $this->_amazons3_get_object($uri, $this->caching);
+    if ($metadata) {
+      $stat = array();
+      $stat[0] = $stat['dev'] = 0;
+      $stat[1] = $stat['ino'] = 0;
+      $stat[2] = $stat['mode'] = $metadata['mode'];
+      $stat[3] = $stat['nlink'] = 0;
+      $stat[4] = $stat['uid'] = 0;
+      $stat[5] = $stat['gid'] = 0;
+      $stat[6] = $stat['rdev'] = 0;
+      $stat[7] = $stat['size'] = 0;
+      $stat[8] = $stat['atime'] = 0;
+      $stat[9] = $stat['mtime'] = 0;
+      $stat[10] = $stat['ctime'] = 0;
+      $stat[11] = $stat['blksize'] = 0;
+      $stat[12] = $stat['blocks'] = 0;
 
-    if($uri != null) {
-
-      $path = $this->getLocalPath($uri);
-      $is_dir = $this->_is_dir($uri);
-      if($this->getS3()->if_object_exists($this->bucket, $path) || $is_dir) {
-
-        $mode = 0100000; // S_IFREG indicating file
-        $mode |= 0777; // everything is writeable
-
-        $stat = array();
-    		$stat[0] = $stat['dev'] = 0;
-    		$stat[1] = $stat['ino'] = 0;
-    		$stat[2] = $stat['mode'] = $mode;
-    		$stat[3] = $stat['nlink'] = 0;
-    		$stat[4] = $stat['uid'] = 0;
-    		$stat[5] = $stat['gid'] = 0;
-    		$stat[6] = $stat['rdev'] = 0;
-    		$stat[7] = $stat['size'] = 0;
-    		$stat[8] = $stat['atime'] = 0;
-    		$stat[9] = $stat['mtime'] = 0;
-    		$stat[10] = $stat['ctime'] = 0;
-    		$stat[11] = $stat['blksize'] = 0;
-    		$stat[12] = $stat['blocks'] = 0;
-
-        if($is_dir) {
-          $stat['mode'] = 0040000; // S_IFDIR indicating directory
-          $stat['mode'] |= 0777;
-          $stat['2'] =  $stat['mode'];
-
-          return $stat;
-        }
-
-        else {
-          $response = $this->getS3()->get_object_metadata($this->bucket, $this->getLocalPath($uri));
-          if($response) {
-            if(isset($response['Size'])) {
-              $stat[7] = $stat['size'] = $response['Size'];
-            }
-            if(isset($response['LastModified'])) {
-              $last_modified = date('U', strtotime((string) $response['LastModified']));
-              $stat[8] = $stat['atime'] = $last_modified;
-              $stat[9] = $stat['mtime'] = $last_modified;
-              $stat[10] = $stat['ctime'] = $last_modified;
-            }
-            if(isset($response['Owner']['ID'])) {
-              $stat[4] = $stat['uid'] = (string) $response['Owner']['ID'];
-            }
-
-            return $stat;
-          }
-        }
+      if (!$metadata['dir']) {
+        $stat[4] = $stat['uid'] = $metadata['uid'];
+        $stat[7] = $stat['size'] = $metadata['filesize'];
+        $stat[8] = $stat['atime'] = $metadata['timestamp'];
+        $stat[9] = $stat['mtime'] = $metadata['timestamp'];
+        $stat[10] = $stat['ctime'] = $metadata['timestamp'];
       }
+      return $stat;
     }
-
     return FALSE;
-  }
+}
 
 
-  /**
-   * Determine whether the $uri is a directory
-   *
+/**
+ * Determine whether the $uri is a directory
+ *
    * @param $uri
    *   A string containing the uri to the resource to check. If none is given
    *   defaults to $this->uri
@@ -904,5 +899,107 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     }
     return FALSE;
   }
-}
 
+  /**
+   * CACHING FUNCTIONS
+   */
+
+  /**
+   * Try to fetch an object from the metadata cache, otherwise fetch it's
+   * info from S3 and populate the cache.
+   *
+   * @param uri
+   *   A string containing the uri of the resource to check.
+   * @param $cach
+   *   A boolean representing whether to check the cache for file information.
+   *
+   *  @return
+   *    An array if the $uri exists, otherwise FALSE.
+   */
+  protected function _amazons3_get_object($uri, $cache = TRUE) {
+    $uri = rtrim($uri,'/');
+
+    if ($cache) {
+      $metadata = $this->_amazons3_get_cache($uri);
+      if ($metadata) {
+        return $metadata;
+      }
+    }
+
+    $is_dir = $this->_is_dir($uri);
+    $metadata = NULL;
+    if ($is_dir) {
+      $mode = 0040000; // S_IFDIR indicating directory
+      $mode |= 0777;
+      $metadata = array(
+        'uri' => $uri,
+        'dir' => 1,
+        'mode' => $mode,
+      );
+    }
+    else {
+      $response = $this->getS3()->get_object_metadata($this->bucket, $this->getLocalPath($uri));
+      if ($response) {
+        $metadata = $this->_amazons3_format_response($uri, $response);
+        $metadata['dir'] = 0;
+        $metadata['mode'] = 0100000; // S_IFREG indicating file
+        $metadata['mode'] |= 0777; // everything is writeable
+      }
+    }
+    if (is_array($metadata)) {
+      // Save to the cache
+      db_merge('amazons3_file')
+        ->key(array('uri' => $metadata['uri']))
+        ->fields($metadata)
+        ->execute();
+      return $metadata;
+    }
+    return FALSE;
+  }
+
+  /**
+   * Fetch an object from the local metadata cache
+   *
+   * @param uri
+   *  A string containing the uri of the resource to check.
+   *
+   *  @return
+   *    An array if the $uri is in the cache, otherwise FALSE
+   */
+  protected function _amazons3_get_cache($uri) {
+    // Check cache for existing object.
+    $result = db_query("SELECT * FROM {amazons3_file} WHERE uri = :uri", array(
+      ':uri' => $uri,
+    ));
+    $record = $result->fetchAssoc();
+    if ($record) {
+      return $record;
+    }
+    return FALSE;
+  }
+
+  /**
+   * Format returned file information from S3 into an array
+   *
+   * @param $uri
+   *   A string containing the uri of the resource to check.
+   * @param $response
+   *   An array containing the collective metadata for the Amazon S3 object
+   *
+   * @return
+   *   An array containing formatted metadata
+   */
+  protected function _amazons3_format_response($uri, $response) {
+    $metadata = array('uri' => $uri);
+    if (isset($response['Size'])) {
+      $metadata['filesize'] = $response['Size'];
+    }
+    if (isset($response['LastModified'])) {
+      $metadata['timestamp'] = date('U', strtotime((string) $response['LastModified']));
+    }
+    if (isset($response['Owner']['ID'])) {
+      $metadata['uid'] = (string) $response['Owner']['ID'];
+    }
+    return $metadata;
+  }
+}

@@ -33,7 +33,7 @@ function amazons3_menu() {
     'page arguments' => array('amazons3_admin'),
     'access arguments' => array('access administration pages'),
   );
-  
+
   return $items;
 }
 
@@ -57,21 +57,28 @@ function amazons3_help($path, $arg) {
  */
 function amazons3_admin() {
   $form = array();
-  
+
   $form['amazons3_bucket'] = array(
       '#type'           => 'textfield',
       '#title'          => t('Default Bucket Name'),
       '#default_value'  => variable_get('amazons3_bucket', ''),
       '#required'       => TRUE,
   );
-  
+
+  $form['amazons3_cache'] = array(
+    '#type'           => 'checkbox',
+    '#title'          => t('Enable database caching'),
+    '#description'    => t('Enable a local file metadata cache, this significantly reduces calls to S3'),
+    '#default_value'  => variable_get('amazons3_cache', 1),
+  );
+
   $form['amazons3_cname'] = array(
     '#type'           => 'checkbox',
     '#title'          => t('Enable CNAME'),
     '#description'    => t('Serve files from a custom domain by using an appropriately named bucket e.g. "mybucket.mydomain.com"'),
     '#default_value'  => variable_get('amazons3_cname', 0),
   );
-  
+
   $form['amazons3_domain'] = array(
       '#type'           => 'textfield',
       '#title'          => t('CDN Domain Name'),
@@ -83,13 +90,24 @@ function amazons3_admin() {
         )
       ),
   );
-  
+
+  $form['amazons3_clear_cache'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Clear cache'),
+  );
+
+  $form['amazons3_clear_cache']['clear'] = array(
+    '#type' => 'submit',
+    '#value' => t('Clear file metadata cache'),
+    '#submit' => array('amazons3_clear_cache_submit'),
+  );
+
   return system_settings_form($form);
 }
 
 function amazons3_admin_validate($form, &$form_state) {
   $bucket = $form_state['values']['amazons3_bucket'];
-  
+
   if(!libraries_load('awssdk')) {
     form_set_error('amazons3_bucket', t('Unable to load the AWS SDK. Please check you have installed the library correctly and configured your S3 credentials.'));
   }
@@ -110,12 +128,12 @@ function amazons3_admin_validate($form, &$form_state) {
     }
     catch(RequestCore_Exception $e){
       if(strstr($e->getMessage(), 'SSL certificate problem')) {
-        form_set_error('amazons3_bucket', t('There was a problem with the SSL certificate. Try setting AWS_CERTIFICATE_AUTHORITY to true in "libraries/awssdk/config.inc.php". You may also have a curl library (e.g. the default shipped with MAMP) that does not contain trust certificates for the major authorities.'));  
+        form_set_error('amazons3_bucket', t('There was a problem with the SSL certificate. Try setting AWS_CERTIFICATE_AUTHORITY to true in "libraries/awssdk/config.inc.php". You may also have a curl library (e.g. the default shipped with MAMP) that does not contain trust certificates for the major authorities.'));
       }
       else {
-        form_set_error('amazons3_bucket', t('There was a problem connecting to S3'));  
+        form_set_error('amazons3_bucket', t('There was a problem connecting to S3'));
       }
-      
+
     }
     catch(Exception $e) {
       form_set_error('amazons3_bucket', t('There was a problem using S3'));
@@ -126,9 +144,18 @@ function amazons3_admin_validate($form, &$form_state) {
 function amazons3_image_style_flush($style) {
   // Empty cached data that contains information about the style.
   if(isset($style->old_name) && strlen($style->old_name) > 0) {
-    drupal_rmdir('s3://styles/' . $style->old_name);  
+    drupal_rmdir('s3://styles/' . $style->old_name);
   }
   if(isset($style->name) && strlen($style->name) > 0) {
-    drupal_rmdir('s3://styles/' . $style->name);  
+    drupal_rmdir('s3://styles/' . $style->name);
   }
 }
+/**
+ * Submit callback; clear file metadata cache.
+ *
+ */
+function amazons3_clear_cache_submit($form, &$form_state) {
+  db_query('TRUNCATE TABLE {amazons3_file}');
+  drupal_set_message(t('Cache cleared.'));
+}
+
