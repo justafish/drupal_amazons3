@@ -318,7 +318,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
 
     $response = $this->getS3()->set_object_acl($this->bucket, $local_path, $acl);
     return $response->isOK();**/
-    return FALSE;
+    return TRUE;
   }
 
   /**
