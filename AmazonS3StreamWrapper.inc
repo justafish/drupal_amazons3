@@ -443,12 +443,14 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.stream-read.php
    */
   public function stream_read($count) {
-    if ($this->getS3()->if_object_exists($this->bucket, $this->getLocalPath())) {
-      $object = substr($this->getS3()->get_object($this->bucket, $this->getLocalPath($this->uri))->body, $this->position, $count);
-      $this->position += $count;
-      return $object;
+    $opts = array(
+      'range' => $this->position . '-' . min($this->object_size, $this->position + $count - 1)
+    );
+    $response = $this->getS3()->get_object($this->bucket, $this->getLocalPath($this->uri), $opts);
+    if ($response->isOK()) {
+      $this->position += strlen($response->body);
+      return $response->body;
     }
-
     return FALSE;
   }
 
