@@ -91,6 +91,30 @@ function amazons3_admin() {
       ),
   );
 
+  $form['amazons3_torrents'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Torrents'),
+    '#description' => t('A list of paths that should be delivered through a torrent url. Enter one value per line e.g. "mydir/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>. If no timeout is provided, it defaults to 60 seconds.', array('@preg_match' => 'http://php.net/preg_match')),
+    '#default_value' => variable_get('amazons3_torrents', ''),
+    '#rows' => 10,
+  );
+
+  $form['amazons3_presigned_urls'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Presigned URLs'),
+    '#description' => t('A list of timeouts and paths that should be delivered through a presigned url. Enter one value per line, in the format timeout|path. e.g. "60|mydir/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>. If no timeout is provided, it defaults to 60 seconds.', array('@preg_match' => 'http://php.net/preg_match')),
+    '#default_value' => variable_get('amazons3_presigned_urls', ''),
+    '#rows' => 10,
+  );
+
+  $form['amazons3_saveas'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Force Save As'),
+    '#description' => t('A list of paths that foce the user to save the file by using Content-disposition header. Prevents autoplay of media. Enter one value per line. e.g. "mydir/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>. Files must use a presigned url to use this.', array('@preg_match' => 'http://php.net/preg_match')),
+    '#default_value' => variable_get('amazons3_saveas', ''),
+    '#rows' => 10,
+  );
+
   $form['amazons3_clear_cache'] = array(
     '#type' => 'fieldset',
     '#title' => t('Clear cache'),

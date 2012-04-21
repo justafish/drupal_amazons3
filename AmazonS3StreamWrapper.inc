@@ -70,6 +70,23 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   protected $caching = FALSE;
 
   /**
+   * @var array Map for files that should be delivered with a torrent URL.
+   */
+  protected $torrents = array();
+
+  /**
+   * @var array Map for files that should have their Content-disposition header
+   * set to force "save as".
+   */
+  protected $saveas = array();
+
+  /**
+   * @var array Map for files that should have a URL will be created that times
+   * out in a designated number of seconds.
+   */
+  protected $presigned_urls = array();
+
+  /**
    * Object constructor
    *
    * Sets the bucket name
@@ -95,6 +112,36 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     if (variable_get('amazons3_cache', FALSE)) {
       $this->caching = TRUE;
     }
+
+    // Torrent list
+    $torrents = explode("\n", variable_get('amazons3_torrents', ''));
+    $torrents = array_map('trim', $torrents);
+    $torrents = array_filter($torrents, 'strlen');
+    $this->torrents = $torrents;
+
+
+    // Presigned url-list
+    $presigned_urls = explode("\n", variable_get('amazons3_presigned_urls', ''));
+    $presigned_urls = array_map('trim', $presigned_urls);
+    $presigned_urls = array_filter($presigned_urls, 'strlen');
+    $this->presigned_urls = array();
+    foreach ($presigned_urls as $presigned_url) {
+      // Check for an explicit key.
+      $matches = array();
+      if (preg_match('/(.*)\|(.*)/', $presigned_url, $matches)) {
+        $this->presigned_urls[$matches[2]] = $matches[1];
+      }
+      else {
+        $this->presigned_urls[$presigned_url] = 60;
+      }
+    }
+
+    // Force "save as" list
+    $saveas = explode("\n", variable_get('amazons3_saveas', ''));
+    $saveas = array_map('trim', $saveas );
+    $saveas  = array_filter($saveas , 'strlen');
+    $this->saveas  = $saveas;
+
   }
 
 
@@ -144,8 +191,57 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
       }
     }
 
-    $url = $this->domain . '/' . $this->getLocalPath();
+    $local_path = $this->getLocalPath();
 
+    $info = array(
+      'download_type' => 'http',
+      'presigned_url' => FALSE,
+      'presigned_url_timeout' => 60,
+      'response' => array(),
+    );
+
+    // Allow other modules to change the download link type.
+    $info = array_merge($info, module_invoke_all('amazons3_url_info', $local_path, $info));
+
+    // UI overrides
+    // Torrent URLs
+    if ($info['download_type'] != 'torrent') {
+      foreach ($this->torrents as $path) {
+        if (preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
+          $info['download_type'] = 'torrent';
+          break;
+        }
+      }
+    }
+    // Presigned URLs
+    if (!$info['presigned_url']) {
+      foreach ($this->presigned_urls as $path => $timeout) {
+        if (preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
+          $info['presigned_url'] = TRUE;
+          $info['presigned_url_timeout'] = $timeout;
+          break;
+        }
+      }
+    }
+    // Save as
+    if ($info['download_type'] != 'torrent') {
+      foreach ($this->saveas as $path) {
+        if (preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
+          $info['response']['content-disposition'] = 'attachment; filename=' . basename($local_path);
+          break;
+        }
+      }
+    }
+
+    $timeout = ($info['presigned_url']) ? time() + $info['presigned_url_timeout'] : 0;
+    $torrent = ($info['download_type'] == 'torrent') ? TRUE : FALSE;
+    $response = ($info['presigned_url']) ? $info['response'] : array();
+    if ($info['presigned_url'] || $info['download_type'] != 'http' || !empty($info['response'])) {
+      $url = $this->getS3()->get_object_url($this->bucket, $local_path, $timeout, array('torrent' => $torrent, 'response' => $response));
+      return $url;
+    }
+
+    $url = $this->domain . '/' . $local_path;
     return $url;
   }
 
@@ -200,7 +296,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    *   Returns TRUE on success or FALSE on failure.
    */
   public function chmod($mode) {
-    $modes = str_split($mode);
+  /**  $modes = str_split($mode);
     if($modes[0] == '0') {
       array_shift($modes);
     }
@@ -221,7 +317,8 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     }
 
     $response = $this->getS3()->set_object_acl($this->bucket, $local_path, $acl);
-    return $response->isOK();
+    return $response->isOK();**/
+    return FALSE;
   }
 
   /**
