@@ -447,20 +447,22 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     if ($count + $this->position > $this->object_size) {
       $count = $this->object_size - $this->position;
     }
-    $range_end = $this->position + $count;
-    if ($this->position == 0 || ($range_end > $this->buffer_length && $range_end <= $this->object_size)) {
-      $opts = array(
-        'range' => $this->position . '-' . $range_end,
-      );
-      $response = $this->getS3()->get_object($this->bucket, $this->getLocalPath($this->uri), $opts);
-      if ($response->isOK()) {
-        $response_length = strlen($response->body);
-        $this->buffer .= $response->body;
-        $this->buffer_length += $response_length;
+    $data = '';
+    if ($count > 0) {
+      $range_end = $this->position + $count - 1;
+      if ($range_end > $this->buffer_length) {
+        $opts = array(
+          'range' => $this->position . '-' . $range_end,
+        );
+        $response = $this->getS3()->get_object($this->bucket, $this->getLocalPath($this->uri), $opts);
+        if ($response->isOK()) {
+          $this->buffer .= $response->body;
+          $this->buffer_length += strlen($response->body);
+        }
       }
+      $data = substr($this->buffer, $this->position, $count);
+      $this->position += strlen($data);
     }
-    $data = substr($this->buffer, $this->position, $count);
-    $this->position += strlen($data);
     return $data;
   }
 
