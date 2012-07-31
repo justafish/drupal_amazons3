@@ -286,14 +286,14 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   /**
    * Changes permissions of the resource.
    *
-   * This doesn't do anything for the moment so just returns FALSE;
+   * This doesn't do anything for the moment so just returns TRUE;
    *
    * @param $mode
    *   Integer value for the permissions. Consult PHP chmod() documentation
    *   for more information.
    *
    * @return
-   *   Returns TRUE on success or FALSE on failure.
+   *   Returns TRUE.
    */
   public function chmod($mode) {
   /**  $modes = str_split($mode);
