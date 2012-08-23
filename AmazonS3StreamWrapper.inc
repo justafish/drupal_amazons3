@@ -711,7 +711,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     $s3 = $this->getS3();
 
     $objects = $s3->get_object_list($this->bucket, array('prefix' => $localpath));
-    if (gettype($objects) === 'array') {
+    if (gettype($objects) === 'array' && !empty($objects)) {
       $or = db_or();
       foreach($objects as $object) {
         $s3->batch()->delete_object($this->bucket, $object);
