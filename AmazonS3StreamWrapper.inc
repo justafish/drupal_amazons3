@@ -312,7 +312,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     }
 
     $local_path = $this->getLocalPath();
-    if($this->_is_dir() && (substr($local_path, -1) != '/')) {
+    if($this->_amazons3_is_dir() && (substr($local_path, -1) != '/')) {
       $local_path .= '/';
     }
 
@@ -764,7 +764,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     if ($uri == null) {
       return FALSE;
     }
-    else if(!$this->_is_dir($uri)) {
+    else if(!$this->_amazons3_is_dir($uri)) {
       return FALSE;
     }
 
@@ -994,7 +994,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    * @return
    *   TRUE if the resource is a directory
    */
-  protected function _is_dir($uri = null) {
+  protected function _amazons3_is_dir($uri = null) {
     if($uri == null) {
       $uri = $this->uri;
     }
@@ -1028,7 +1028,13 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    *    An array if the $uri exists, otherwise FALSE.
    */
   protected function _amazons3_get_object($uri, $cache = TRUE) {
-    $uri = rtrim($uri,'/');
+    if ($uri == 's3://' || $uri == 's3:') {
+      $metadata = $this->_amazons3_format_response('/', array(), TRUE);
+      return $metadata;
+    }
+    else {
+      $uri = rtrim($uri,'/');
+    }
 
     if ($cache) {
       $metadata = $this->_amazons3_get_cache($uri);
@@ -1037,24 +1043,15 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
       }
     }
 
-    $is_dir = $this->_is_dir($uri);
+    $is_dir = $this->_amazons3_is_dir($uri);
     $metadata = NULL;
     if ($is_dir) {
-      $mode = 0040000; // S_IFDIR indicating directory
-      $mode |= 0777;
-      $metadata = array(
-        'uri' => $uri,
-        'dir' => 1,
-        'mode' => $mode,
-      );
+      $metadata = $this->_amazons3_format_response($uri, array(), TRUE);
     }
     else {
       $response = $this->getS3()->get_object_metadata($this->bucket, $this->getLocalPath($uri));
       if ($response) {
         $metadata = $this->_amazons3_format_response($uri, $response);
-        $metadata['dir'] = 0;
-        $metadata['mode'] = 0100000; // S_IFREG indicating file
-        $metadata['mode'] |= 0777; // everything is writeable
       }
     }
     if (is_array($metadata)) {
@@ -1096,11 +1093,13 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    *   A string containing the uri of the resource to check.
    * @param $response
    *   An array containing the collective metadata for the Amazon S3 object
+   * @param $is_dir
+   *   A boolean indicating whether this object is a directory.
    *
    * @return
    *   An array containing formatted metadata
    */
-  protected function _amazons3_format_response($uri, $response) {
+  protected function _amazons3_format_response($uri, $response, $is_dir = FALSE) {
     $metadata = array('uri' => $uri);
     if (isset($response['Size'])) {
       $metadata['filesize'] = $response['Size'];
@@ -1110,6 +1109,16 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     }
     if (isset($response['Owner']['ID'])) {
       $metadata['uid'] = (string) $response['Owner']['ID'];
+    }
+    if ($is_dir) {
+      $metadata['dir'] = 1;
+      $metadata['mode'] = 0040000; // S_IFDIR indicating directory
+      $metadata['mode'] |= 0777;
+    }
+    else {
+      $metadata['dir'] = 0;
+      $metadata['mode'] = 0100000; // S_IFREG indicating file
+      $metadata['mode'] |= 0777; // everything is writeable
     }
     return $metadata;
   }
