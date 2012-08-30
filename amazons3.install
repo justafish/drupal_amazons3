@@ -64,7 +64,7 @@ function amazons3_schema() {
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
-        'default' => 0,
+        'default' => '',
       ),
     ),
     'indexes' => array(
@@ -131,5 +131,16 @@ function amazons3_update_7100($sandbox) {
     'primary key' => array('uri'),
   );
   db_create_table('amazons3_file', $schema['amazons3_file']);
+}
+
+function amazons3_update_7101(&$sandbox) {
+  $spec = array(
+    'description' => 'The uid of the user who is associated with the file (not Drupal uid).',
+    'type' => 'varchar',
+    'length' => 255,
+    'not null' => TRUE,
+    'default' => '',
+  );
+  db_change_field('amazons3_file', 'uid', 'uid', $spec);
 }
 
