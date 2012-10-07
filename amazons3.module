@@ -31,10 +31,21 @@ function amazons3_menu() {
     'description' => 'Configure your S3 credentials',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('amazons3_admin'),
-    'access arguments' => array('access administration pages'),
+    'access arguments' => array('administer amazons3'),
   );
 
   return $items;
+}
+
+/**
+ * Implementation of hook_permission()
+ */
+function amazons3_permission() {
+  return array(
+    'administer amazons3' => array(
+      'title' => t('Administer AmazonS3'),
+    ),
+  );
 }
 
 /**

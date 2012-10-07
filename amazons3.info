@@ -1,5 +1,5 @@
 ; $Id$
-name = Amazon S3
+name = AmazonS3
 description = Provides S3 stream wrapper class
 package = Amazon S3
 core = 7.x
