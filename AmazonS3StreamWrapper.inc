@@ -27,7 +27,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   /**
    * @var string Domain we use to access files over http
    */
-  protected $domain;
+  protected $domain = NULL;
 
   /**
    * @var int Current read/write position
@@ -296,6 +296,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    *   Returns TRUE.
    */
   public function chmod($mode) {
+    $this->assertConstructorCalled();
   /**  $modes = str_split($mode);
     if($modes[0] == '0') {
       array_shift($modes);
@@ -599,6 +600,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.unlink.php
    */
   public function unlink($uri) {
+    $this->assertConstructorCalled();
     $response = $this->getS3()->delete_object($this->bucket, $this->getLocalPath($uri));
     if($response->isOK()) {
       // Delete from cache
@@ -624,6 +626,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.rename.php
    */
   public function rename($from_uri, $to_uri) {
+    $this->assertConstructorCalled();
     $from = $this->getLocalPath($from_uri);
     $to = $this->getLocalPath($to_uri);
 
@@ -680,7 +683,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.mkdir.php
    */
   public function mkdir($uri, $mode, $options) {
-
+    $this->assertConstructorCalled();
     $recursive = (bool) ($options & STREAM_MKDIR_RECURSIVE);
     $localpath = $this->getLocalPath($uri);
 
@@ -707,6 +710,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.rmdir.php
    */
   public function rmdir($uri, $options) {
+    $this->assertConstructorCalled();
     $localpath = $this->getLocalPath($uri);
     $s3 = $this->getS3();
 
@@ -744,6 +748,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.url-stat.php
    */
   public function url_stat($uri, $flags) {
+    $this->assertConstructorCalled();
     return $this->_stat($uri);
   }
 
@@ -761,6 +766,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.dir-opendir.php
    */
   public function dir_opendir($uri, $options) {
+    $this->assertConstructorCalled();
     if ($uri == null) {
       return FALSE;
     }
@@ -1121,5 +1127,20 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
       $metadata['mode'] |= 0777; // everything is writeable
     }
     return $metadata;
+  }
+
+  /**
+   * Assert that the constructor has been called, call it if not.
+   *
+   * Due to PHP bug #40459, the constructor of this class isn't always called
+   * for some of the methods. This private method calls the constructor if
+   * it hasn't been called before.
+   *
+   * @see https://bugs.php.net/bug.php?id=40459
+   */
+  private function assertConstructorCalled() {
+    if ($this->domain === NULL) {
+      $this->__construct();
+    }
   }
 }
