@@ -615,7 +615,10 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   /**
    * Support for rename().
    *
-   * @param $from_uri,
+   * If $to_uri exists, this file will be overwritten. This behavior is
+   * identical to the PHP rename() function.
+   *
+   * @param $from_uri
    *   The uri to the file to rename.
    * @param $to_uri
    *   The new uri for file.
@@ -629,15 +632,29 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     $this->assertConstructorCalled();
     $from = $this->getLocalPath($from_uri);
     $to = $this->getLocalPath($to_uri);
+    $s3 = $this->getS3();
 
-    /**
-     * @todo Finish this...
-    if ($this->getS3()->if_object_exists($this->bucket, $from) && !$this->getS3()->if_object_exists($this->bucket, $to)) {
-      // get a lock
+    // Ensure the source file exists.
+    if (!$s3->if_object_exists($this->bucket, $from)) {
+      return FALSE;
     }
-    **/
 
-    return FALSE;
+    // Ensure the destination does not exist.
+    if ($s3->if_object_exists($this->bucket, $to)) {
+      return FALSE;
+    }
+
+    $response = $s3->copy_object(
+      array('bucket' => $this->bucket, 'filename' => $from),
+      array('bucket' => $this->bucket, 'filename' => $to),
+      array('acl' => AmazonS3::ACL_PUBLIC)
+    );
+    if (!$response->isOK()) {
+      return FALSE;
+    }
+
+    // Remove the original
+    return $this->unlink($from_uri);
   }
 
   /**
