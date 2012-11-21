@@ -634,27 +634,14 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     $to = $this->getLocalPath($to_uri);
     $s3 = $this->getS3();
 
-    // Ensure the source file exists.
-    if (!$s3->if_object_exists($this->bucket, $from)) {
-      return FALSE;
-    }
-
-    // Ensure the destination does not exist.
-    if ($s3->if_object_exists($this->bucket, $to)) {
-      return FALSE;
-    }
-
     $response = $s3->copy_object(
       array('bucket' => $this->bucket, 'filename' => $from),
       array('bucket' => $this->bucket, 'filename' => $to),
       array('acl' => AmazonS3::ACL_PUBLIC)
     );
-    if (!$response->isOK()) {
-      return FALSE;
-    }
 
-    // Remove the original
-    return $this->unlink($from_uri);
+    // Check the response and then remove the original.
+    return $response->isOK() && $this->unlink($from_uri);
   }
 
   /**
