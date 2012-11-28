@@ -10,20 +10,21 @@
  */
 function amazons3_requirements($phase) {
   $t = get_t();
-  $requirements = array();
 
-  if ($phase == 'runtime') {
-    $fopen_allowed = ini_get('allow_url_fopen');
-    $ok_message = $t('The PHP allow_url_fopen setting is on.');
-    $error_message = $t('Amazon S3 module requires that the allow_url_fopen setting be turned on in php.ini.');
-
-    $requirements['amazons3_allow_url_fopen'] = array(
-      'severity' => $fopen_allowed ? REQUIREMENT_OK : REQUIREMENT_ERROR,
-      'title' => $t('AmazonS3'),
-      'value' => 'allow_url_fopen',
-      'description' => $fopen_allowed ? $ok_message : $error_message,
-    );
+  if ($phase != 'runtime') {
+    return array();
   }
+
+  $fopen_allowed = ini_get('allow_url_fopen');
+  $ok_message = $t('The PHP allow_url_fopen setting is on.');
+  $error_message = $t('Amazon S3 module requires that the allow_url_fopen setting be turned on in php.ini.');
+
+  $requirements['amazons3_allow_url_fopen'] = array(
+    'severity' => $fopen_allowed ? REQUIREMENT_OK : REQUIREMENT_ERROR,
+    'title' => $t('AmazonS3'),
+    'value' => 'allow_url_fopen',
+    'description' => $fopen_allowed ? $ok_message : $error_message,
+  );
 
   return $requirements;
 }
