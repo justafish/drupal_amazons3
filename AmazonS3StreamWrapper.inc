@@ -707,23 +707,47 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.rmdir.php
    */
   public function rmdir($uri, $options) {
+    return $this->amazons3_rmdir($uri, $options);
+  }
+
+  /**
+   * Helper function for deleting directories.
+   *
+   * The force flag will perform a recursive delete.
+   */
+  public function amazons3_rmdir($uri, $options, $force = FALSE) {
     $localpath = $this->getLocalPath($uri);
     $s3 = $this->getS3();
 
-    $objects = $s3->get_object_list($this->bucket, array('prefix' => $localpath));
-    if (gettype($objects) === 'array' && !empty($objects)) {
-      $or = db_or();
-      foreach($objects as $object) {
-        $s3->batch()->delete_object($this->bucket, $object);
-        // Delete from cache
-        $object_uri = 's3://' . rtrim($object,'/');
-        $or->condition('uri', $object_uri, '=');
-      }
-      db_delete('amazons3_file')->condition($or)->execute();
-      $responses = $s3->batch()->send();
+    if ($force) {
+      $objects = $s3->get_object_list($this->bucket, array('prefix' => $localpath));
+      if (gettype($objects) === 'array' && !empty($objects)) {
+        $or = db_or();
+        foreach($objects as $object) {
+          $s3->batch()->delete_object($this->bucket, $object);
+          // Delete from cache
+          $object_uri = 's3://' . rtrim($object,'/');
+          $or->condition('uri', $object_uri, '=');
+        }
+        db_delete('amazons3_file')->condition($or)->execute();
+        $responses = $s3->batch()->send();
 
-      if($responses->areOK()) {
-        return TRUE;
+        if($responses->areOK()) {
+          return TRUE;
+        }
+      }
+    }
+    else {
+      $objects = $s3->get_object_list($this->bucket, array('prefix' => $localpath, 'max-keys' => 2));
+      if (count($objects) == 1) {
+        $response = $this->getS3()->delete_object($this->bucket, $localpath);
+        if($response->isOK()) {
+          // Delete from cache
+          db_delete('amazons3_file')
+            ->condition('uri', $uri)
+            ->execute();
+          return TRUE;
+        }
       }
     }
     return FALSE;
