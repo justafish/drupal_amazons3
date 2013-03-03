@@ -1010,10 +1010,13 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     }
     if($uri != null) {
       $path = $this->getLocalPath($uri);
+      if (strlen($path) === 0) {
+        return TRUE;
+      }
       $response = $this->getS3()->list_objects($this->bucket, array(
           'prefix' => $path . '/',
           'max-keys' => 1,
-      ));
+        ));
       if($response && isset($response->body->Contents->Key)) {
         return TRUE;
       }
