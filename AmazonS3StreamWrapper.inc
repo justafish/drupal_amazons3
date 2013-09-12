@@ -109,7 +109,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     }
 
     // Check whether local file caching is turned on
-    if (variable_get('amazons3_cache', FALSE)) {
+    if (variable_get('amazons3_cache', TRUE)) {
       $this->caching = TRUE;
     }
 
