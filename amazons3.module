@@ -80,7 +80,7 @@ function amazons3_admin() {
     '#type'           => 'checkbox',
     '#title'          => t('Enable database caching'),
     '#description'    => t('Enable a local file metadata cache, this significantly reduces calls to S3'),
-    '#default_value'  => variable_get('amazons3_cache', 1),
+    '#default_value'  => variable_get('amazons3_cache', 0),
   );
 
   $form['amazons3_cname'] = array(
