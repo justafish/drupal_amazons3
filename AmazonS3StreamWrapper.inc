@@ -1007,11 +1007,16 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
       $stat[12] = $stat['blocks'] = 0;
 
       if (!$metadata['dir']) {
-        $stat[4] = $stat['uid'] = $metadata['uid'];
-        $stat[7] = $stat['size'] = $metadata['filesize'];
-        $stat[8] = $stat['atime'] = $metadata['timestamp'];
-        $stat[9] = $stat['mtime'] = $metadata['timestamp'];
-        $stat[10] = $stat['ctime'] = $metadata['timestamp'];
+        if (!isset($metadata['uid']) || !isset($metadata['filesize']) || !isset($metadata['timestamp'])) {
+          return FALSE;
+        }
+        else {
+          $stat[4] = $stat['uid'] = $metadata['uid'];
+          $stat[7] = $stat['size'] = $metadata['filesize'];
+          $stat[8] = $stat['atime'] = $metadata['timestamp'];
+          $stat[9] = $stat['mtime'] = $metadata['timestamp'];
+          $stat[10] = $stat['ctime'] = $metadata['timestamp'];
+        }
       }
       return $stat;
     }
