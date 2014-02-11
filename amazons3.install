@@ -59,6 +59,8 @@ function amazons3_schema() {
       'filesize' => array(
         'description' => 'The size of the file in bytes.',
         'type' => 'int',
+        'size' => 'big',
+        'length' => 14,
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
@@ -168,3 +170,19 @@ function amazons3_update_7101(&$sandbox) {
   db_change_field('amazons3_file', 'uid', 'uid', $spec);
 }
 
+
+/**
+ * Update the filesize column to use a bigint, to allow TB filesizes.
+ */
+function amazons3_update_7102(&$sandbox) {
+  $spec = array(
+    'description' => 'The size of the file in bytes.',
+    'type' => 'int',
+    'size' => 'big',
+    'length' => 14,
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  );
+  db_change_field('amazons3_file', 'filesize', 'filesize', $spec);
+}
