@@ -87,6 +87,11 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   protected $presigned_urls = array();
 
   /**
+   * @var array Map for files that should be saved with Reduced Redundancy Storage.
+   */
+  protected $rrs = array();
+
+  /**
    * Object constructor
    *
    * Sets the bucket name
@@ -141,6 +146,12 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     $saveas = array_map('trim', $saveas );
     $saveas  = array_filter($saveas , 'strlen');
     $this->saveas  = $saveas;
+
+    // Reduced Redundancy Storage
+    $rrs = explode("\n", variable_get('amazons3_rrs', ''));
+    $rrs = array_map('trim', $rrs );
+    $rrs  = array_filter($rrs , 'strlen');
+    $this->rrs  = $rrs;
 
   }
 
@@ -550,10 +561,21 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    */
   public function stream_flush() {
     if($this->write_buffer) {
-      $response = $this->getS3()->create_object($this->bucket, $this->getLocalPath(), array(
+      // Set the storage type.
+      $s3_storage_type = AmazonS3::STORAGE_STANDARD;
+      $local_path = $this->getLocalPath();
+      foreach ($this->rrs as $path) {
+        if (preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
+          $s3_storage_type = AmazonS3::STORAGE_REDUCED;
+          break;
+        }
+      }
+      // Save the object.
+      $response = $this->getS3()->create_object($this->bucket, $local_path, array(
         'body' => $this->buffer,
         'acl' => AmazonS3::ACL_PUBLIC,
         'contentType' => AmazonS3StreamWrapper::getMimeType($this->uri),
+        'storage' => $s3_storage_type,
       ));
       if($response->isOK()) {
         return TRUE;
