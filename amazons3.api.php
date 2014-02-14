@@ -22,6 +22,7 @@
  * @param $info
  *   Array of keyed elements:
  *     - 'download_type': either 'http' or 'torrent'.
+ *     - 'https': either TRUE or FALSE.
  *     - 'torrent': (boolean) Causes use of an authenticated URL (time limited)
  *     - 'presigned_url_timeout': (boolean) Time in seconds before an authenticated URL will time out.
  *     - 'response': array of additional options as described at

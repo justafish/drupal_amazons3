@@ -41,6 +41,7 @@ function amazons3_uninstall() {
   variable_del('amazons3_presigned_urls');
   variable_del('amazons3_saveas');
   variable_del('amazons3_rrs');
+  variable_del('amazons3_https');
 }
 
 /**

@@ -70,6 +70,11 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   protected $caching = FALSE;
 
   /**
+   * @var array Map for files that should be delivered through HTTPS.
+   **/
+  protected $https = array();
+
+  /**
    * @var array Map for files that should be delivered with a torrent URL.
    */
   protected $torrents = array();
@@ -103,20 +108,26 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     if (variable_get('amazons3_cname', 0)) {
       $domain = variable_get('amazons3_domain', '');
       if(strlen($domain) > 0) {
-        $this->domain = 'http://' . $domain;
+        $this->domain = '//' . $domain;
       }
       else {
-        $this->domain = 'http://' . $this->bucket;
+        $this->domain = '//' . $this->bucket;
       }
     }
     else {
-      $this->domain = 'http://' . $this->bucket . '.s3.amazonaws.com';
+      $this->domain = '//' . $this->bucket . '.s3.amazonaws.com';
     }
 
     // Check whether local file caching is turned on
     if (variable_get('amazons3_cache', TRUE)) {
       $this->caching = TRUE;
     }
+
+    // HTTPS list
+    $https = explode("\n", variable_get('amazons3_https', ''));
+    $https = array_map('trim', $https);
+    $torrents = array_filter($https, 'strlen');
+    $this->https = $https;
 
     // Torrent list
     $torrents = explode("\n", variable_get('amazons3_torrents', ''));
@@ -206,6 +217,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
 
     $info = array(
       'download_type' => 'http',
+      'https' => FALSE,
       'presigned_url' => FALSE,
       'presigned_url_timeout' => 60,
       'response' => array(),
@@ -215,40 +227,41 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     $info = array_merge($info, module_invoke_all('amazons3_url_info', $local_path, $info));
 
     // UI overrides
+    // HTTPS
+    foreach ($this->https as $path) {
+      if ($path === '*' || preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
+        $info['https'] = TRUE;
+        break;
+      }
+    }
     // Torrent URLs
-    if ($info['download_type'] != 'torrent') {
-      foreach ($this->torrents as $path) {
-        if (preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
-          $info['download_type'] = 'torrent';
-          break;
-        }
+    foreach ($this->torrents as $path) {
+      if ($path === '*' || preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
+        $info['download_type'] = 'torrent';
+        break;
       }
     }
     // Presigned URLs
-    if (!$info['presigned_url']) {
-      foreach ($this->presigned_urls as $path => $timeout) {
-        if (preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
-          $info['presigned_url'] = TRUE;
-          $info['presigned_url_timeout'] = $timeout;
-          break;
-        }
+    foreach ($this->presigned_urls as $path => $timeout) {
+      if ($path === '*' || preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
+        $info['presigned_url'] = TRUE;
+        $info['presigned_url_timeout'] = $timeout;
+        break;
       }
     }
     // Save as
-    if ($info['download_type'] != 'torrent') {
-      foreach ($this->saveas as $path) {
-        if (preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
-          $info['response']['content-disposition'] = 'attachment; filename=' . basename($local_path);
-          break;
-        }
+    foreach ($this->saveas as $path) {
+      if ($path === '*' || preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
+        $info['response']['content-disposition'] = 'attachment; filename=' . basename($local_path);
+        break;
       }
     }
 
     $timeout = ($info['presigned_url']) ? time() + $info['presigned_url_timeout'] : 0;
     $torrent = ($info['download_type'] == 'torrent') ? TRUE : FALSE;
     $response = ($info['presigned_url']) ? $info['response'] : array();
-    if ($info['presigned_url'] || $info['download_type'] != 'http' || !empty($info['response'])) {
-      $url = $this->getS3()->get_object_url($this->bucket, $local_path, $timeout, array('torrent' => $torrent, 'response' => $response));
+    if ($info['presigned_url'] || $info['download_type'] != 'http' || !empty($info['response']) || $info['https']) {
+      $url = $this->getS3()->get_object_url($this->bucket, $local_path, $timeout, array('https' => $info['https'], 'torrent' => $torrent, 'response' => $response));
       return $url;
     }
 
