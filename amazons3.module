@@ -102,6 +102,13 @@ function amazons3_admin() {
       ),
   );
 
+  $form['amazons3_hostname'] = array(
+    '#type'             => 'textfield',
+    '#title'            => t('Custom Hostname'),
+    '#description'      => t('For use with an alternative API compatible service e.g. <a href="@cloud">Google Cloud Storage</a>', array('@cloud' => 'https://cloud.google.com/storage‎')),
+    '#default_value'    => variable_get('amazons3_hostname', ''),
+  );
+
   $form['amazons3_https'] = array(
     '#type' => 'textarea',
     '#title' => t('Force HTTPS'),

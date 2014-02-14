@@ -20,6 +20,11 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   protected $s3 = null;
 
   /**
+    * @var string alternative hostname for usage with other API compatible services
+    */
+  protected $hostname;
+
+  /**
    * @var string S3 bucket name
    */
   protected $bucket;
@@ -102,6 +107,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    * Sets the bucket name
    */
   public function __construct() {
+    $this->hostname = variable_get('amazons3_hostname', '');
     $this->bucket = $bucket = variable_get('amazons3_bucket', '');
 
     // CNAME support for customising S3 URLs
@@ -998,6 +1004,10 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
       else {
         try {
          $this->s3 = new AmazonS3();
+         if (!empty($this->hostname)) {
+           $this->s3->set_hostname($this->hostname);
+           $this->s3->allow_hostname_override(FALSE);
+         }
          $this->bucket = $bucket;
         }
         catch(RequestCore_Exception $e){
