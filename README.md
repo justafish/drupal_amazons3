@@ -41,6 +41,5 @@ See [http://drupal.org/project/amazons3_cors](http://drupal.org/project/amazons3
 
 
 ## API
-You can alter the metadata for each object saved to S3 with hook_amazons3_save_headers(). This is very useful for setting Cache-Control and Expires headers. 
-
-You can also modify the download method via a hook. See amazons3.api.php
+You can alter the metadata for each object saved to S3 with hook_amazons3_save_headers().
+You can also modify the generated URL and it's properties, this is very useful for setting Cache-Control and Expires headers. See amazons3.api.php

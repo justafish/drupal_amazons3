@@ -265,7 +265,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
 
     $timeout = ($info['presigned_url']) ? time() + $info['presigned_url_timeout'] : 0;
     $torrent = ($info['download_type'] == 'torrent') ? TRUE : FALSE;
-    $response = ($info['presigned_url']) ? $info['response'] : array();
+    $response = ($info['response']) ? $info['response'] : array();
     if ($info['presigned_url'] || $info['download_type'] != 'http' || !empty($info['response']) || $info['https']) {
       $url = $this->getS3()->get_object_url($this->bucket, $local_path, $timeout, array('https' => $info['https'], 'torrent' => $torrent, 'response' => $response));
       return $url;
@@ -590,17 +590,12 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
         }
       }
 
-      // Set the metadata.
-      $headers = array();
-      $headers = array_merge($headers, module_invoke_all('amazons3_save_headers', $local_path, $headers));
-
       // Save the object.
       $response = $this->getS3()->create_object($this->bucket, $local_path, array(
         'body' => $this->buffer,
         'acl' => AmazonS3::ACL_PUBLIC,
         'contentType' => AmazonS3StreamWrapper::getMimeType($this->uri),
         'storage' => $s3_storage_type,
-        'headers' => $headers,
       ));
       if($response->isOK()) {
         return TRUE;
