@@ -28,7 +28,7 @@ function amazons3_menu() {
 
   $items['admin/config/media/amazons3'] = array(
     'title' => 'Amazon S3',
-    'description' => 'Configure your S3 credentials',
+    'description' => 'Configure S3 credentials and settings',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('amazons3_admin'),
     'access arguments' => array('administer amazons3'),

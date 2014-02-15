@@ -15,9 +15,16 @@ You can switch it on as the default file system scheme, or individually for file
 You will need to set allow_url_fopen to on your PHP settings. This option enables the URL-aware fopen wrappers that enable accessing URL object like files. See [http://uk.php.net/manual/en/function.fopen.php](http://uk.php.net/manual/en/function.fopen.php)
 
 ## Known Issues
+### SSL
 Some curl libraries, such as the one bundled with MAMP, do not come with authoritative certificate files.
 
 [http://dev.soup.io/post/56438473/If-youre-using-MAMP-and-doing-something](http://dev.soup.io/post/56438473/If-youre-using-MAMP-and-doing-something)
+
+### Bucket names with "." in them
+Newer versions of OpenSSL also have issues with buckets with "." in their names. Bucket names with dots in them will use a slightly different path when delivering files over SSL. This is only relevant if you're not using a CNAME to alias a bucket to your own domain. See https://forums.aws.amazon.com/thread.jspa?threadID=69108&start=0&tstart=0#308166
+
+### Image Styles
+Image styles are delivered first through the private file system, which generates a derivative on S3 and is served from S3 thereafter. Don't expect it to be fast the first time!
 
 ## Installation
 - Download and install Libraries, AWS SDK and AmazonS3 Drupal modules.
@@ -28,6 +35,10 @@ Some curl libraries, such as the one bundled with MAMP, do not come with authori
 
 - Change individual fields to upload to S3 in the field settings
 - Use AmazonS3 instead of the public file system (although there are a few issues due to core hardcoding the use of public:// in a few places e.g. aggregated CSS and JS). Go to /admin/config/media/file-system and set the default download method to Amazon.
+
+## CORS Upload
+See [http://drupal.org/project/amazons3_cors](http://drupal.org/project/amazons3_cors)
+
 
 ## API
 You can alter the metadata for each object saved to S3 with hook_amazons3_save_headers(). This is very useful for setting Cache-Control and Expires headers. 
