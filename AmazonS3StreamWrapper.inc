@@ -589,12 +589,18 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
           break;
         }
       }
+
+      // Set the metadata.
+      $headers = array();
+      $headers = array_merge($headers, module_invoke_all('amazons3_save_headers', $local_path, $headers));
+
       // Save the object.
       $response = $this->getS3()->create_object($this->bucket, $local_path, array(
         'body' => $this->buffer,
         'acl' => AmazonS3::ACL_PUBLIC,
         'contentType' => AmazonS3StreamWrapper::getMimeType($this->uri),
         'storage' => $s3_storage_type,
+        'headers' => $headers,
       ));
       if($response->isOK()) {
         return TRUE;
