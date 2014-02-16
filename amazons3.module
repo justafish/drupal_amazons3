@@ -8,7 +8,7 @@
 /**
  * Implements hook_stream_wrappers().
  *
- * Create a stream wrapper for S3
+ * Create a stream wrapper for S3.
  */
 function amazons3_stream_wrappers() {
   return array(
@@ -38,7 +38,7 @@ function amazons3_menu() {
 }
 
 /**
- * Implementation of hook_permission()
+ * Implements hook_permission().
  */
 function amazons3_permission() {
   return array(
@@ -54,12 +54,14 @@ function amazons3_permission() {
 function amazons3_help($path, $arg) {
   switch ($path) {
     case 'admin/config/media/amazons3':
-    if (module_exists('awssdk_ui')) {
-      return '<p>' . t('Amazon Web Services authentication can be configured at the <a href="@awssdk_config">AWS SDK configuration page</a>.', array('@awssdk_config' => url('admin/config/media/awssdk'))) . '</p>';
-    }
-    else {
-      return '<p>' . t('Enable \'AWS SDK for PHP UI\' module to configure your Amazon Web Services authentication. Configuration can also be defined in the $conf array in settings.php.', array('@awssdk_config' => url('admin/config/media/awssdk'))) . '</p>';
-    }
+      if (module_exists('awssdk_ui')) {
+        return '<p>' . t('Amazon Web Services authentication can be configured at the <a href="@awssdk_config">AWS SDK configuration page</a>.', array('@awssdk_config' => url('admin/config/media/awssdk'))) . '</p>';
+      }
+      else {
+        return '<p>' . t("Enable 'AWS SDK for PHP UI' module to configure your Amazon Web Services authentication. Configuration can also be defined in the \$conf array in settings.php.", array('@awssdk_config' => url('admin/config/media/awssdk'))) . '</p>';
+      }
+
+      break;
   }
 }
 
@@ -70,55 +72,55 @@ function amazons3_admin() {
   $form = array();
 
   $form['amazons3_bucket'] = array(
-      '#type'           => 'textfield',
-      '#title'          => t('Default Bucket Name'),
-      '#default_value'  => variable_get('amazons3_bucket', ''),
-      '#required'       => TRUE,
+    '#type' => 'textfield',
+    '#title' => t('Default Bucket Name'),
+    '#default_value' => variable_get('amazons3_bucket', ''),
+    '#required' => TRUE,
   );
 
   $form['amazons3_cache'] = array(
-    '#type'           => 'checkbox',
-    '#title'          => t('Enable database caching'),
-    '#description'    => t('Enable a local file metadata cache, this significantly reduces calls to S3'),
-    '#default_value'  => variable_get('amazons3_cache', 1),
+    '#type' => 'checkbox',
+    '#title' => t('Enable database caching'),
+    '#description' => t('Enable a local file metadata cache, this significantly reduces calls to S3'),
+    '#default_value' => variable_get('amazons3_cache', 1),
   );
 
   $form['amazons3_cname'] = array(
-    '#type'           => 'checkbox',
-    '#title'          => t('Enable CNAME'),
-    '#description'    => t('Serve files from a custom domain by using an appropriately named bucket e.g. "mybucket.mydomain.com"'),
-    '#default_value'  => variable_get('amazons3_cname', 0),
+    '#type' => 'checkbox',
+    '#title' => t('Enable CNAME'),
+    '#description' => t('Serve files from a custom domain by using an appropriately named bucket e.g. "mybucket.mydomain.com"'),
+    '#default_value' => variable_get('amazons3_cname', 0),
   );
 
   $form['amazons3_domain'] = array(
-      '#type'           => 'textfield',
-      '#title'          => t('CDN Domain Name'),
-      '#description'    => t('If serving files from CloudFront then the bucket name can differ from the domain name.'),
-      '#default_value'  => variable_get('amazons3_domain', ''),
-      '#states'         => array(
-        'visible' => array(
-          ':input[id=edit-amazons3-cname]' => array('checked' => TRUE),
-        )
+    '#type' => 'textfield',
+    '#title' => t('CDN Domain Name'),
+    '#description' => t('If serving files from CloudFront then the bucket name can differ from the domain name.'),
+    '#default_value' => variable_get('amazons3_domain', ''),
+    '#states' => array(
+      'visible' => array(
+        ':input[id=edit-amazons3-cname]' => array('checked' => TRUE),
       ),
+    ),
   );
 
   $form['amazons3_cloudfront'] = array(
-    '#type'           => 'checkbox',
-    '#title'          => t('Enable CloudFront'),
-    '#description'    => t('Deliver URLs through a CloudFront domain when using presigned URLs.'),
-    '#default_value'  => variable_get('amazons3_cloudfront', 0),
-    '#states'         => array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable CloudFront'),
+    '#description' => t('Deliver URLs through a CloudFront domain when using presigned URLs.'),
+    '#default_value' => variable_get('amazons3_cloudfront', 0),
+    '#states' => array(
       'visible' => array(
         ':input[id=edit-amazons3-cname]' => array('checked' => TRUE),
-      )
+      ),
     ),
   );
 
   $form['amazons3_hostname'] = array(
-    '#type'             => 'textfield',
-    '#title'            => t('Custom Hostname'),
-    '#description'      => t('For use with an alternative API compatible service e.g. <a href="@cloud">Google Cloud Storage</a>', array('@cloud' => 'https://cloud.google.com/storage‎')),
-    '#default_value'    => variable_get('amazons3_hostname', ''),
+    '#type' => 'textfield',
+    '#title' => t('Custom Hostname'),
+    '#description' => t('For use with an alternative API compatible service e.g. <a href="@cloud">Google Cloud Storage</a>', array('@cloud' => 'https://cloud.google.com/storage‎')),
+    '#default_value' => variable_get('amazons3_hostname', ''),
   );
 
   $form['amazons3_https'] = array(
@@ -175,6 +177,9 @@ function amazons3_admin() {
   return system_settings_form($form);
 }
 
+/**
+ * Validate the admin form.
+ */
 function amazons3_admin_validate($form, &$form_state) {
   $bucket = $form_state['values']['amazons3_bucket'];
   $cloudfront = $form_state['values']['amazons3_cloudfront'];
@@ -187,16 +192,15 @@ function amazons3_admin_validate($form, &$form_state) {
     }
   }
 
-  if(!libraries_load('awssdk')) {
+  if (!libraries_load('awssdk')) {
     form_set_error('amazons3_bucket', t('Unable to load the AWS SDK. Please check you have installed the library correctly and configured your S3 credentials.'));
   }
-  else if(!class_exists('AmazonS3')) {
+  elseif (!class_exists('AmazonS3')) {
     form_set_error('amazons3_bucket', t('Cannot load AmazonS3 class. Please check the awssdk is installed correctly'));
   }
   else {
     try {
       $s3 = new AmazonS3();
-      // test connection
       $response = $s3->list_objects($bucket, array(
           'max-keys' => 1,
         ));
@@ -205,7 +209,7 @@ function amazons3_admin_validate($form, &$form_state) {
       }
     }
     catch (RequestCore_Exception $e) {
-      if(strstr($e->getMessage(), 'SSL certificate problem')) {
+      if (strstr($e->getMessage(), 'SSL certificate problem')) {
         form_set_error('amazons3_bucket', t('There was a problem with the SSL certificate. Try setting AWS_CERTIFICATE_AUTHORITY to true in "libraries/awssdk/config.inc.php". You may also have a curl library (e.g. the default shipped with MAMP) that does not contain trust certificates for the major authorities. The following exception was thrown: @exception'), array('@exception' => $e->getMessage()));
       }
       else {
@@ -220,11 +224,9 @@ function amazons3_admin_validate($form, &$form_state) {
 }
 
 /**
- * Submit callback; clear file metadata cache.
- *
+ * Admin sub-form submit callback; clear file metadata cache.
  */
 function amazons3_clear_cache_submit($form, &$form_state) {
   db_query('TRUNCATE TABLE {amazons3_file}');
   drupal_set_message(t('Cache cleared.'));
 }
-

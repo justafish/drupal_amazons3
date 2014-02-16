@@ -106,7 +106,7 @@ function amazons3_schema() {
 }
 
 /**
- * Install the caching table
+ * Install the caching table.
  */
 function amazons3_update_7100($sandbox) {
   $schema['amazons3_file'] = array(
@@ -162,6 +162,9 @@ function amazons3_update_7100($sandbox) {
   db_create_table('amazons3_file', $schema['amazons3_file']);
 }
 
+/**
+ * Change uid to a varchar.
+ */
 function amazons3_update_7101(&$sandbox) {
   $spec = array(
     'description' => 'The uid of the user who is associated with the file (not Drupal uid).',
