@@ -102,6 +102,16 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   protected $rrs = array();
 
   /**
+   * @var bool Whether or not to deliver URLs through CloudFront.
+   */
+  protected $cloudfront = FALSE;
+
+  /**
+   * @var AmazonCF connection object
+   */
+  protected $cf = NULL;
+
+  /**
    * Object constructor
    *
    * Sets the bucket name
@@ -109,6 +119,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   public function __construct() {
     $this->hostname = variable_get('amazons3_hostname', '');
     $this->bucket = $bucket = variable_get('amazons3_bucket', '');
+    $this->cloudfront = variable_get('amazons3_cloudfront', TRUE);
 
     // CNAME support for customising S3 URLs
     if (variable_get('amazons3_cname', 0)) {
@@ -132,7 +143,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     // HTTPS list
     $https = explode("\n", variable_get('amazons3_https', ''));
     $https = array_map('trim', $https);
-    $torrents = array_filter($https, 'strlen');
+    $https = array_filter($https, 'strlen');
     $this->https = $https;
 
     // Torrent list
@@ -263,15 +274,23 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
       }
     }
 
-    $timeout = ($info['presigned_url']) ? time() + $info['presigned_url_timeout'] : 0;
-    $torrent = ($info['download_type'] == 'torrent') ? TRUE : FALSE;
-    $response = ($info['response']) ? $info['response'] : array();
-    if ($info['presigned_url'] || $info['download_type'] != 'http' || !empty($info['response']) || $info['https']) {
+    $timeout = $info['presigned_url'] ? time() + $info['presigned_url_timeout'] : 0;
+    $torrent = $info['download_type'] == 'torrent' ? TRUE : FALSE;
+    $response = is_array($info['response']) ? $info['response'] : array();
+
+    // Generate the URL.
+    $url = $this->domain . '/' . $local_path;
+
+    if ($info['presigned_url'] && $this->cloudfront) {
+      $url = $this->getCF()->get_private_object_url($this->domain, $local_path, $timeout, array('Secure' => $info['https']));
+    }
+    else if ($info['presigned_url'] || $info['download_type'] !== 'http' || !empty($info['response'])) {
       $url = $this->getS3()->get_object_url($this->bucket, $local_path, $timeout, array('https' => $info['https'], 'torrent' => $torrent, 'response' => $response));
-      return $url;
+    }
+    else if ($info['https']) {
+      $url = 'https:' . $url;
     }
 
-    $url = $this->domain . '/' . $local_path;
     return $url;
   }
 
@@ -590,12 +609,17 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
         }
       }
 
+      // Set the metadata.
+      $headers = array();
+      $headers = array_merge($headers, module_invoke_all('amazons3_save_headers', $local_path, $headers));
+
       // Save the object.
       $response = $this->getS3()->create_object($this->bucket, $local_path, array(
         'body' => $this->buffer,
         'acl' => AmazonS3::ACL_PUBLIC,
         'contentType' => AmazonS3StreamWrapper::getMimeType($this->uri),
         'storage' => $s3_storage_type,
+        'headers' => $headers,
       ));
       if($response->isOK()) {
         return TRUE;
@@ -993,13 +1017,11 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    * @see http://docs.amazonwebservices.com/AWSSDKforPHP/latest/#i=AmazonS3
    */
   protected function getS3() {
-    if($this->s3 == null) {
-      $bucket = variable_get('amazons3_bucket', '');
-
-      if(!libraries_load('awssdk') && !isset($bucket)) {
+    if ($this->s3 == NULL) {
+      if (!libraries_load('awssdk')) {
         drupal_set_message('Unable to load the AWS SDK. Please check you have installed the library correctly and configured your S3 credentials.'. 'error');
       }
-      else if(!isset($bucket)) {
+      else if (empty($this->bucket)) {
         drupal_set_message('Bucket name not configured.'. 'error');
       }
       else {
@@ -1009,17 +1031,39 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
            $this->s3->set_hostname($this->hostname);
            $this->s3->allow_hostname_override(FALSE);
          }
-         $this->bucket = $bucket;
         }
-        catch(RequestCore_Exception $e){
-          drupal_set_message('There was a problem connecting to S3', 'error');
-        }
-        catch(Exception $e) {
+        catch (Exception $e) {
           drupal_set_message('There was a problem using S3: ' . $e->getMessage(), 'error');
         }
       }
     }
     return $this->s3;
+  }
+
+  /**
+   * Get the CloudFront connection object
+   *
+   * @return AmazonCloudFront
+   *   CloudFront connection object.
+   *
+   * @see http://docs.amazonwebservices.com/AWSSDKforPHP/latest/#i=AmazonCloudFront
+   */
+  protected function getCF() {
+    if ($this->cf === NULL) {
+      if (!libraries_load('awssdk')) {
+        drupal_set_message('Unable to load the AWS SDK. Please check you have installed the library correctly and configured your CloudFront settings.'. 'error');
+      }
+      else if (variable_get('amazons3_cname', 0) && variable_get('amazons3_domain', 0)) {
+        try {
+         $this->cf = new AmazonCloudFront();
+        }
+        catch (Exception $e) {
+          drupal_set_message('There was a problem using CloudFront: ' . $e->getMessage(), 'error');
+        }
+      }
+    }
+
+    return $this->cf;
   }
 
   /**

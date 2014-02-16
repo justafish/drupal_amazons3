@@ -102,6 +102,18 @@ function amazons3_admin() {
       ),
   );
 
+  $form['amazons3_cloudfront'] = array(
+    '#type'           => 'checkbox',
+    '#title'          => t('Enable CloudFront'),
+    '#description'    => t('Deliver URLs through a CloudFront domain when using presigned URLs.'),
+    '#default_value'  => variable_get('amazons3_cloudfront', 0),
+    '#states'         => array(
+      'visible' => array(
+        ':input[id=edit-amazons3-cname]' => array('checked' => TRUE),
+      )
+    ),
+  );
+
   $form['amazons3_hostname'] = array(
     '#type'             => 'textfield',
     '#title'            => t('Custom Hostname'),
@@ -120,7 +132,7 @@ function amazons3_admin() {
   $form['amazons3_torrents'] = array(
     '#type' => 'textarea',
     '#title' => t('Torrents'),
-    '#description' => t('A list of paths that should be delivered through a torrent url. Enter one value per line e.g. "mydir/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>.', array('@preg_match' => 'http://php.net/preg_match')),
+    '#description' => t('A list of paths that should be delivered through a torrent url. Enter one value per line e.g. "mydir/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>. This won\'t work for CloudFront presigned URLs.', array('@preg_match' => 'http://php.net/preg_match')),
     '#default_value' => variable_get('amazons3_torrents', ''),
     '#rows' => 10,
   );
@@ -128,7 +140,7 @@ function amazons3_admin() {
   $form['amazons3_presigned_urls'] = array(
     '#type' => 'textarea',
     '#title' => t('Presigned URLs'),
-    '#description' => t('A list of timeouts and paths that should be delivered through a presigned url. Enter one value per line, in the format <timeout>|<path>|<protocol>. e.g. "60|mydir/*" or "60|mydir/*|https". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>.', array('@preg_match' => 'http://php.net/preg_match')),
+    '#description' => t('A list of timeouts and paths that should be delivered through a presigned url. Enter one value per line, in the format &lt;timeout&gt;|&lt;path&gt;|&lt;protocol&gt;. e.g. "60|mydir/*" or "60|mydir/*|https". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>.', array('@preg_match' => 'http://php.net/preg_match')),
     '#default_value' => variable_get('amazons3_presigned_urls', ''),
     '#rows' => 10,
   );
@@ -136,7 +148,7 @@ function amazons3_admin() {
   $form['amazons3_saveas'] = array(
     '#type' => 'textarea',
     '#title' => t('Force Save As'),
-    '#description' => t('A list of paths that force the user to save the file by using Content-disposition header. Prevents autoplay of media. Enter one value per line. e.g. "mydir/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>. Files must use a presigned url to use this.', array('@preg_match' => 'http://php.net/preg_match')),
+    '#description' => t('A list of paths that force the user to save the file by using Content-disposition header. Prevents autoplay of media. Enter one value per line. e.g. "mydir/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>. Files must use a presigned url to use this, however it won\'t work for CloudFront presigned URLs and you\'ll need to set the content-disposition header in the file metadata before saving.', array('@preg_match' => 'http://php.net/preg_match')),
     '#default_value' => variable_get('amazons3_saveas', ''),
     '#rows' => 10,
   );
@@ -165,6 +177,15 @@ function amazons3_admin() {
 
 function amazons3_admin_validate($form, &$form_state) {
   $bucket = $form_state['values']['amazons3_bucket'];
+  $cloudfront = $form_state['values']['amazons3_cloudfront'];
+
+  if ($cloudfront) {
+    $keypair = variable_get('aws_cloudfront_keypair', '');
+    $pem = variable_get('aws_cloudfront_pem', '');
+    if (empty($keypair) || empty($pem)) {
+      form_set_error('amazons3_cloudfront', t('You must configure your CloudFront credentials in the awksdk module.'));
+    }
+  }
 
   if(!libraries_load('awssdk')) {
     form_set_error('amazons3_bucket', t('Unable to load the AWS SDK. Please check you have installed the library correctly and configured your S3 credentials.'));

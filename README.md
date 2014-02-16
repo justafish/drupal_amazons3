@@ -41,4 +41,8 @@ See [http://drupal.org/project/amazons3_cors](http://drupal.org/project/amazons3
 
 
 ## API
-You can modify the generated URL and it's properties, this is very useful for setting Cache-Control and Expires headers. See amazons3.api.php
+You can modify the generated URL and it's properties, this is very useful for setting Cache-Control and Expires headers (as long as you aren't using CloudFront).
+
+You can also alter the metadata for each object saved to S3 with hook_amazons3_save_headers(). This is very useful for forcing the content-disposition header to force download files if they're being delivered through CloudFront presigned URLs.
+
+See amazons3.api.php
