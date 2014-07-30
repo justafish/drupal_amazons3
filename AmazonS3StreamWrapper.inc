@@ -280,7 +280,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     $response = is_array($info['response']) ? $info['response'] : array();
 
     // Generate the URL.
-    $url = $this->domain . '/' . $local_path;
+    $url = $this->domain . '/' . drupal_encode_path($local_path);
 
     if ($info['presigned_url'] && $this->cloudfront) {
       $url = $this->getCF()->get_private_object_url($this->domain, $local_path, $timeout, array('Secure' => $info['https']));
