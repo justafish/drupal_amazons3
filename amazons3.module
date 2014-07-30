@@ -201,6 +201,9 @@ function amazons3_admin_validate($form, &$form_state) {
   else {
     try {
       $s3 = new AmazonS3();
+      if (!empty($form_state['values']['amazons3_hostname'])) {
+        $s3->set_hostname($form_state['values']['amazons3_hostname']);
+      }
       $response = $s3->list_objects($bucket, array(
           'max-keys' => 1,
         ));
@@ -210,10 +213,10 @@ function amazons3_admin_validate($form, &$form_state) {
     }
     catch (RequestCore_Exception $e) {
       if (strstr($e->getMessage(), 'SSL certificate problem')) {
-        form_set_error('amazons3_bucket', t('There was a problem with the SSL certificate. Try setting AWS_CERTIFICATE_AUTHORITY to true in "libraries/awssdk/config.inc.php". You may also have a curl library (e.g. the default shipped with MAMP) that does not contain trust certificates for the major authorities. The following exception was thrown: @exception'), array('@exception' => $e->getMessage()));
+        form_set_error('amazons3_bucket', t('There was a problem with the SSL certificate. Try setting AWS_CERTIFICATE_AUTHORITY to true in "libraries/awssdk/config.inc.php". You may also have a curl library (e.g. the default shipped with MAMP) that does not contain trust certificates for the major authorities. The following exception was thrown: @exception', array('@exception' => $e->getMessage())));
       }
       else {
-        form_set_error('amazons3_bucket', t('There was a problem connecting to S3. The following exception was thrown: @exception'), array('@exception' => $e->getMessage()));
+        form_set_error('amazons3_bucket', t('There was a problem connecting to S3. The following exception was thrown: @exception', array('@exception' => $e->getMessage())));
       }
 
     }
