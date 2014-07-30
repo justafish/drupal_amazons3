@@ -218,7 +218,7 @@ function amazons3_admin_validate($form, &$form_state) {
 
     }
     catch (Exception $e) {
-      form_set_error('amazons3_bucket', t('There was a problem using S3. The following exception was thrown: @exception'), array('@exception' => $e->getMessage()));
+      form_set_error('amazons3_bucket', t('There was a problem using S3. The following exception was thrown: @exception', array('@exception' => $e->getMessage())));
     }
   }
 }
