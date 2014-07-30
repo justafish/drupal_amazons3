@@ -848,7 +848,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    *
    * @see http://php.net/manual/en/streamwrapper.dir-opendir.php
    */
-  public function dir_opendir($uri, $options) {
+  public function dir_opendir($uri, $options = array()) {
     $this->assertConstructorCalled();
     if ($uri === NULL) {
       return FALSE;
@@ -906,7 +906,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
           }
         }
 
-        if (!isset($response->body->IsTruncated) || $response->body->IsTruncated === 'false') {
+        if (!isset($response->body->IsTruncated) || $response->body->IsTruncated->__toString() === 'false') {
           $truncated = FALSE;
         }
       }
