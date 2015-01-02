@@ -772,14 +772,14 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    * @see http://php.net/manual/en/streamwrapper.rmdir.php
    */
   public function rmdir($uri, $options) {
-    return $this->amazons3_rmdir($uri, $options);
+    return $this->_amazons3_rmdir($uri, $options);
   }
   /**
    * Helper function for deleting directories.
    *
    * The force flag will perform a recursive delete.
    */
-  public function amazons3_rmdir($uri, $options, $force = FALSE) {
+  public function _amazons3_rmdir($uri, $options, $force = FALSE) {
     $this->assertConstructorCalled();
     $localpath = $this->getLocalPath($uri);
     $s3 = $this->getS3();
