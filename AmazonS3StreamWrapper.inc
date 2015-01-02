@@ -815,6 +815,12 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
           return TRUE;
         }
       }
+      else if (count($objects) === 0) {
+        db_delete('amazons3_file')
+          ->condition('uri', $uri)
+          ->execute();
+        return TRUE;
+      }
     }
     return FALSE;
   }
