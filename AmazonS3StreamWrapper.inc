@@ -590,6 +590,8 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    */
   public function stream_flush() {
     if ($this->write_buffer) {
+      // Make sure the S3 class is loaded.
+      $this->getS3();
       // Set the storage type.
       $s3_storage_type = AmazonS3::STORAGE_STANDARD;
       $local_path = $this->getLocalPath();
