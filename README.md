@@ -12,7 +12,7 @@ You can switch it on as the default file system scheme, or individually for file
 - [AWS SDK for PHP 1.6.2](http://pear.amazonwebservices.com/get/sdk-1.6.2.tgz)
 
 
-You will need to set allow_url_fopen to on your PHP settings. This option enables the URL-aware fopen wrappers that enable accessing URL object like files. See [http://uk.php.net/manual/en/function.fopen.php](http://uk.php.net/manual/en/function.fopen.php)
+You will need to set allow_url_fopen to "on" in your PHP settings. This option enables the URL-aware fopen wrappers that enable accessing URL object like files. See [http://uk.php.net/manual/en/function.fopen.php](http://uk.php.net/manual/en/function.fopen.php)
 
 ## Known Issues
 ### SSL
