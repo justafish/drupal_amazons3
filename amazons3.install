@@ -15,16 +15,30 @@ function amazons3_requirements($phase) {
     return array();
   }
 
+  // Check for allow_url_fopen.
   $fopen_allowed = ini_get('allow_url_fopen');
-  $ok_message = $t('The PHP allow_url_fopen setting is on.');
-  $error_message = $t('Amazon S3 module requires that the allow_url_fopen setting be turned on in php.ini.');
-
   $requirements['amazons3_allow_url_fopen'] = array(
     'severity' => $fopen_allowed ? REQUIREMENT_OK : REQUIREMENT_ERROR,
     'title' => $t('AmazonS3'),
     'value' => 'allow_url_fopen',
-    'description' => $fopen_allowed ? $ok_message : $error_message,
+    'description' => $fopen_allowed ? $t('The PHP allow_url_fopen setting is on.') : $t('Amazon S3 module requires that the allow_url_fopen setting be turned on in php.ini.'),
   );
+
+  // Check the AWSSDK minimum.
+  $awssdk_minimum = '1.6.2';
+  $awssdk_info = libraries_load('awssdk');
+  $requirements['amazons3_awssdk'] = array(
+    'severity' => REQUIREMENT_ERROR,
+    'title' => $t('AmazonS3'),
+    'value' => t('Unknown version'),
+    'description' => $t('AmazonS3 requires AWSSDK library version ' . $awssdk_minimum . ' or greater.'),
+  );
+  if ($awssdk_info && class_exists('AmazonS3') && !empty($awssdk_info['version'])) {
+    $requirements['amazons3_awssdk']['value'] = $awssdk_info['version'];
+    if (version_compare($awssdk_info['version'], $awssdk_minimum, '>=')) {
+      $requirements['amazons3_awssdk']['severity'] = REQUIREMENT_OK;
+    }
+  }
 
   return $requirements;
 }
