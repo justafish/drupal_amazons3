@@ -125,16 +125,16 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
     if (variable_get('amazons3_cname', 0)) {
       $domain = variable_get('amazons3_domain', '');
       if (strlen($domain) > 0) {
-        $this->domain = '//' . $domain;
+        $this->domain = $domain;
       }
       else {
-        $this->domain = '//' . $this->bucket;
+        $this->domain = $this->bucket;
       }
 
       $this->cloudfront = variable_get('amazons3_cloudfront', TRUE);
     }
     else {
-      $this->domain = '//' . $this->bucket . '.s3.amazonaws.com';
+      $this->domain = $this->bucket . '.s3.amazonaws.com';
     }
 
     // Check whether local file caching is turned on.
@@ -218,6 +218,7 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
    *   Returns a string containing a web accessible URL for the resource.
    */
   public function getExternalUrl() {
+    global $is_https;
 
     // Image styles support
     // Delivers the first request to an image from the private file system
@@ -297,8 +298,11 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
         )
       );
     }
-    elseif ($info['https']) {
-      $url = 'https:' . $url;
+    elseif ($info['https'] || $is_https) {
+      $url = 'https://' . $url;
+    }
+    else {
+      $url = 'http://' . $url;
     }
 
     return $url;
