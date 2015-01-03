@@ -1263,11 +1263,19 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
       }
     }
     if (is_array($metadata)) {
-      // Save to the cache.
-      db_merge('amazons3_file')
-        ->key(array('uri' => $metadata['uri']))
-        ->fields($metadata)
-        ->execute();
+      // Avoid any potential integrity constraint violations caused by another
+      // process inserting the entry during the db_merge.
+      try {
+        // Save to the cache.
+        db_merge('amazons3_file')
+          ->key(array('uri' => $metadata['uri']))
+          ->fields($metadata)
+          ->execute();
+      }
+      catch (Exception $e) {
+        // If it fails we don't care, the entry is either already written or will
+        // happen again on the next request.
+      }
       return $metadata;
     }
 
