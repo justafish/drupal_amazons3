@@ -47,6 +47,11 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
   protected $objectSize = 0;
 
   /**
+   * @var string Determines whether the write buffer is active.
+   */
+  protected $write_buffer = FALSE;
+
+  /**
    * @var string Object read/write buffer, typically a file
    */
   protected $buffer = NULL;
