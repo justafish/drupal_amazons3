@@ -615,6 +615,10 @@ class AmazonS3StreamWrapper implements DrupalStreamWrapperInterface {
         'headers' => $headers,
       ));
       if ($response->isOK()) {
+        // Delete cache entry.
+        db_delete('amazons3_file')
+          ->condition('uri', $this->uri)
+          ->execute();
         return TRUE;
       }
     }
