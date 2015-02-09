@@ -233,3 +233,24 @@ function amazons3_clear_cache_submit($form, &$form_state) {
   db_query('TRUNCATE TABLE {amazons3_file}');
   drupal_set_message(t('Cache cleared.'));
 }
+
+/**
+ * Implements hook_field_default_field_bases_alter().
+ *
+ * Allows a variable to override all exported field bases to use 'Amazon S3' as
+ * the Upload destination. For example this can be added to environment-specific
+ * Drupal settings files, to allow certain environments to upload to S3 while
+ * other environments upload to the exported (public or private) URI scheme:
+ * @code
+ * $conf['amazons3_file_uri_scheme_override'] = 's3';
+ * @endcode
+ */
+function amazons3_field_default_field_bases_alter(&$fields) {
+  if ($uri_scheme = variable_get('amazons3_file_uri_scheme_override', FALSE)) {
+    foreach($fields as $key => $item) {
+      if (isset($item['settings']['uri_scheme'])) {
+        $fields[$key]['settings']['uri_scheme'] = $uri_scheme;
+      }
+    }
+  }
+}

@@ -35,6 +35,7 @@ Image styles are delivered first through the private file system, which generate
 
 - Change individual fields to upload to S3 in the field settings
 - Use AmazonS3 instead of the public file system (although there are a few issues due to core hardcoding the use of public:// in a few places e.g. aggregated CSS and JS). Go to /admin/config/media/file-system and set the default download method to Amazon.
+- When using Features to export field definitions, the Upload destination is included. If you want to override this (for example, in a multi-environment workflow), use the 'amazons3_file_uri_scheme_override' variable. See amazons3_field_default_field_bases_alter() for documentation.
 
 ## CORS Upload
 See [http://drupal.org/project/amazons3_cors](http://drupal.org/project/amazons3_cors)
