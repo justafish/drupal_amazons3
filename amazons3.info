@@ -4,6 +4,4 @@ package = Amazon S3
 core = 7.x
 files[] = amazons3.module
 files[] = AmazonS3StreamWrapper.inc
-dependencies[] = awssdk (>=5.1)
-dependencies[] = libraries (2.x)
 configure = admin/config/media/amazons3
