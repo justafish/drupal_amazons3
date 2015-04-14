@@ -14,5 +14,8 @@
     ],
     "require": {
         "aws/aws-sdk-php": "~2.8"
+    },
+    "autoload": {
+        "psr-4": {"Drupal\\amazons3\\": "src/"}
     }
 }
