@@ -2,6 +2,8 @@
 
 namespace Drupal\amazons3;
 
+use Guzzle\Common\Collection;
+
 /**
  * Class to manage S3 stream wrapper configuration.
  *
@@ -18,7 +20,7 @@ namespace Drupal\amazons3;
  * @class StreamWrapperConfiguration
  * @package Drupal\amazons3
  */
-class StreamWrapperConfiguration {
+class StreamWrapperConfiguration extends Collection {
 
   /**
    * The hostname to use for API requests.
@@ -89,11 +91,16 @@ class StreamWrapperConfiguration {
   /**
    * Construct a new configuration for an S3 stream wrapper.
    *
+   * @param array $config
+   *   (optional) An array of configuration data. Each key is a lower-cased
+   *   string corresponding with a set method.
+   *
    * @param bool $useVariables
    *   (optional) Use variables from variable_get() to configure S3. Defaults to
-   *   TRUE. When setting to false, all configuration is handled with setters.
+   *   TRUE. Items set in $data will override Drupal variables.
+   *
    */
-  public function __construct($useVariables = TRUE) {
+  public function __construct(array $config = array(), $useVariables = TRUE) {
     if ($useVariables) {
       $this->setFromDrupalVariables();
     }
@@ -265,11 +272,11 @@ class StreamWrapperConfiguration {
    * Set the stream wrapper configuration using Drupal variables.
    */
   protected function setFromDrupalVariables() {
-    $this->setHostname(variable_get('amazons3_hostname', NULL));
-    $this->setBucket(variable_get('amazons3_bucket', NULL));
+    $this->setHostname(variable_get('amazons3_hostname'));
+    $this->setBucket(variable_get('amazons3_bucket'));
 
     // CNAME support for customizing S3 URLs.
-    if (variable_get('amazons3_cname', 0)) {
+    if (variable_get('amazons3_cname', FALSE)) {
       $domain = variable_get('amazons3_domain', '');
       if (strlen($domain) > 0) {
         $this->setDomain($domain);
