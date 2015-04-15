@@ -23,88 +23,62 @@ use Guzzle\Common\Collection;
 class StreamWrapperConfiguration extends Collection {
 
   /**
-   * The hostname to use for API requests.
-   *
-   * This can be used to work with an API-compatible service like Google's
-   * Cloud Storage.
-   *
-   * @var string
-   */
-  protected $hostname;
-
-  /**
-   * The bucket to use.
-   *
-   * @var string
-   */
-  protected $bucket;
-
-  /**
-   * The domain to serve content from.
-   *
-   * @var string
-   */
-  protected $domain;
-
-  /**
-   * If files should be served from CloudFront.
-   *
-   * @var boolean
-   */
-  protected $cloudFront = TRUE;
-
-  /**
-   * An array of paths to serve as torrents.
-   *
-   * @var string[]
-   */
-  protected $torrentPaths;
-
-  /**
-   * An array of paths and timeouts to serve with presigned URLs.
-   *
-   * @var string[]
-   */
-  protected $presignedPaths;
-
-  /**
-   * An array of paths to force the user to save a file.
-   *
-   * @var string[]
-   */
-  protected $saveAsPaths;
-
-  /**
-   * If file caching is enabled.
-   *
-   * @var boolean
-   */
-  protected $caching = TRUE;
-
-  /**
-   * An array of paths to save in Reduced Redundancy Storage.
-   *
-   * @var string[]
-   */
-  protected $reducedRedundancyPaths;
-
-  /**
    * Construct a new configuration for an S3 stream wrapper.
-   *
-   * @param array $config
-   *   (optional) An array of configuration data. Each key is a lower-cased
-   *   string corresponding with a set method.
    *
    * @param bool $useVariables
    *   (optional) Use variables from variable_get() to configure S3. Defaults to
    *   TRUE. Items set in $data will override Drupal variables.
-   *
    */
-  public function __construct(array $config = array(), $useVariables = TRUE) {
-    if ($useVariables) {
-      $this->setFromDrupalVariables();
-    }
+
+  /**
+   * Generate a configuration object from an array.
+   *
+   * @param array $config
+   *   (optional) An array of configuration data. Each key is a lower-cased
+   *   string corresponding with a set method.
+   * @param array $defaults
+   *   (optional) Override the default settings.
+   * @param array $required
+   *   (optional) Override the required settings.
+   *
+   * @return StreamWrapperConfiguration
+   *   The stream wrapper configuration.
+   */
+  public static function fromConfig(array $config = array(), array $defaults = array(), array $required = array()) {
+    $defaults = self::defaults();
+    $required = self::required();
+
+    return parent::fromConfig($config, $defaults, $required);
   }
+
+  /**
+   * @return array
+   */
+  protected static function defaults() {
+    $defaults = array(
+      'hostname' => NULL,
+      'bucket' => NULL,
+      'torrentPaths' => array(),
+      'presignedPaths' => array(),
+      'saveAsPaths' => array(),
+      'cloudFront' => array(),
+      'domain' => NULL,
+      'caching' => TRUE,
+      'reducedRedundancyPaths' => array(),
+    );
+    return $defaults;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static function required() {
+    $required = array(
+      'bucket',
+    );
+    return $required;
+  }
+
 
   /**
    * Get the API hostname.
@@ -112,7 +86,7 @@ class StreamWrapperConfiguration extends Collection {
    * @return string
    */
   public function getHostname() {
-    return $this->hostname;
+    return $this->data['hostname'];
   }
 
   /**
@@ -121,7 +95,7 @@ class StreamWrapperConfiguration extends Collection {
    * @param string $hostname
    */
   public function setHostname($hostname) {
-    $this->hostname = $hostname;
+    $this->data['hostname'] = $hostname;
   }
 
   /**
@@ -130,7 +104,7 @@ class StreamWrapperConfiguration extends Collection {
    * @return string
    */
   public function getBucket() {
-    return $this->bucket;
+    return $this->data['bucket'];
   }
 
   /**
@@ -139,7 +113,7 @@ class StreamWrapperConfiguration extends Collection {
    * @param string $bucket
    */
   public function setBucket($bucket) {
-    $this->bucket = $bucket;
+    $this->data['bucket'] = $bucket;
   }
 
   /**
@@ -148,7 +122,7 @@ class StreamWrapperConfiguration extends Collection {
    * @return string[]
    */
   public function getTorrentPaths() {
-    return $this->torrentPaths;
+    return $this->data['torrentPaths'];
   }
 
   /**
@@ -157,7 +131,7 @@ class StreamWrapperConfiguration extends Collection {
    * @param string[] $torrentPaths
    */
   public function setTorrentPaths(array $torrentPaths) {
-    $this->torrentPaths = $torrentPaths;
+    $this->data['torrentPaths'] = $torrentPaths;
   }
 
   /**
@@ -166,7 +140,7 @@ class StreamWrapperConfiguration extends Collection {
    * @return string[]
    */
   public function getPresignedPaths() {
-    return $this->presignedPaths;
+    return $this->data['presignedPaths'];
   }
 
   /**
@@ -175,7 +149,7 @@ class StreamWrapperConfiguration extends Collection {
    * @param string[] $presignedPaths
    */
   public function setPresignedPaths(array $presignedPaths) {
-    $this->presignedPaths = $presignedPaths;
+    $this->data['presignedPaths'] = $presignedPaths;
   }
 
   /**
@@ -184,7 +158,7 @@ class StreamWrapperConfiguration extends Collection {
    * @return string[]
    */
   public function getSaveAsPaths() {
-    return $this->saveAsPaths;
+    return $this->data['saveAsPaths'];
   }
 
   /**
@@ -193,7 +167,7 @@ class StreamWrapperConfiguration extends Collection {
    * @param string[] $saveAsPaths
    */
   public function setSaveAsPaths($saveAsPaths) {
-    $this->saveAsPaths = $saveAsPaths;
+    $this->data['saveAsPaths'] = $saveAsPaths;
   }
 
   /**
@@ -202,137 +176,144 @@ class StreamWrapperConfiguration extends Collection {
    * @return bool
    */
   public function isCloudFront() {
-    return $this->cloudFront;
+    return $this->data['cloudFront'];
   }
 
   /**
    * Set if objects should be served with CloudFront.
    */
   public function serveWithCloudFront() {
-    $this->cloudFront = TRUE;
+    $this->data['cloudFront'] = TRUE;
   }
 
   /**
    * Set if objects should be served with S3 directly.
    */
   public function serveWithS3() {
-    $this->cloudFront = FALSE;
+    $this->data['cloudFront'] = FALSE;
   }
 
   /**
    * @return string
    */
   public function getDomain() {
-    return $this->domain;
+    return $this->data['domain'];
   }
 
   /**
    * @param string $domain
    */
   public function setDomain($domain) {
-    $this->domain = $domain;
+    $this->data['domain'] = $domain;
   }
 
   /**
    * @return boolean
    */
   public function isCaching() {
-    return $this->caching;
+    return $this->data['caching'];
   }
 
   /**
    *
    */
   public function enableCaching() {
-    $this->caching = TRUE;
+    $this->data['caching'] = TRUE;
   }
 
   /**
    *
    */
   public function disableCaching() {
-    $this->caching = FALSE;
+    $this->data['caching'] = FALSE;
   }
 
   /**
    * @return string[]
    */
   public function getReducedRedundancyPaths() {
-    return $this->reducedRedundancyPaths;
+    return $this->data['reducedRedundancyPaths'];
   }
 
   /**
    * @param string[] $reducedRedundancyPaths
    */
   public function setReducedRedundancyPaths(array $reducedRedundancyPaths) {
-    $this->reducedRedundancyPaths = $reducedRedundancyPaths;
+    $this->data['reducedRedundancyPaths'] = $reducedRedundancyPaths;
   }
 
   /**
    * Set the stream wrapper configuration using Drupal variables.
+   *
+   * @return StreamWrapperConfiguration
    */
-  protected function setFromDrupalVariables() {
-    $this->setHostname(variable_get('amazons3_hostname'));
-    $this->setBucket(variable_get('amazons3_bucket'));
+  public static function fromDrupalVariables() {
+    $config = new static();
+    $defaults = $config->defaults();
+
+    $config->setHostname(variable_get('amazons3_hostname', $defaults['hostname']));
+    $config->setBucket(variable_get('amazons3_bucket', $defaults['bucket']));
 
     // CNAME support for customizing S3 URLs.
     if (variable_get('amazons3_cname', FALSE)) {
-      $domain = variable_get('amazons3_domain', '');
+      $domain = variable_get('amazons3_domain', $defaults['domain']);
       if (strlen($domain) > 0) {
-        $this->setDomain($domain);
+        $config->setDomain($domain);
       }
       else {
-        $this->setDomain($this->bucket);
+        $config->setDomain($config->getBucket());
       }
-      if (!variable_get('amazons3_cloudfront', TRUE)) {
-        $this->serveWithS3();
+      if (!variable_get('amazons3_cloudfront', $defaults['cloudFront'])) {
+        $config->serveWithS3();
       }
     }
     else {
-      $this->setDomain($this->bucket . '.s3.amazonaws.com');
+      $config->setDomain($config->getBucket() . '.s3.amazonaws.com');
     }
 
     // Check whether local file caching is turned on.
-    if (!variable_get('amazons3_cache', TRUE)) {
-      $this->disableCaching();
+    if (!variable_get('amazons3_cache', $defaults['caching'])) {
+      $config->disableCaching();
     }
 
     // Torrent list.
-    $torrents = explode("\n", variable_get('amazons3_torrents', ''));
+    $torrents = explode("\n", variable_get('amazons3_torrents', $defaults['torrentPaths']));
     $torrents = array_map('trim', $torrents);
     $torrents = array_filter($torrents, 'strlen');
-    $this->setTorrentPaths($torrents);
+    $config->setTorrentPaths($torrents);
 
     // Presigned url-list.
     // @todo This is going to be totally broken.
     $presigned_urls = explode(
       "\n",
-      variable_get('amazons3_presigned_urls', '')
+      variable_get('amazons3_presigned_urls', $defaults['presignedPaths'])
     );
     $presigned_urls = array_map('trim', $presigned_urls);
     $presigned_urls = array_filter($presigned_urls, 'strlen');
-    $this->presignedUrls = array();
+    $config->presignedUrls = array();
     foreach ($presigned_urls as $presigned_url) {
       // Check for an explicit key.
       $matches = array();
       if (preg_match('/(.*)\|(.*)/', $presigned_url, $matches)) {
-        $this->presignedUrls[$matches[2]] = $matches[1];
+        $config->presignedUrls[$matches[2]] = $matches[1];
       }
       else {
-        $this->presignedUrls[$presigned_url] = 60;
+        $config->presignedUrls[$presigned_url] = 60;
       }
     }
 
     // Force "save as" list.
-    $saveas = explode("\n", variable_get('amazons3_saveas', ''));
+    $saveas = explode("\n", variable_get('amazons3_saveas', $defaults['saveAsPaths']));
     $saveas = array_map('trim', $saveas);
     $saveas = array_filter($saveas, 'strlen');
-    $this->setSaveAsPaths($saveas);
+    $config->setSaveAsPaths($saveas);
 
     // Reduced Redundancy Storage.
-    $rrs = explode("\n", variable_get('amazons3_rrs', ''));
+    $rrs = explode("\n", variable_get('amazons3_rrs', $defaults['reducedRedundancyPaths']));
     $rrs = array_map('trim', $rrs);
     $rrs = array_filter($rrs, 'strlen');
-    $this->setReducedRedundancyPaths($rrs);
+    $config->setReducedRedundancyPaths($rrs);
+
+    return $config;
   }
 }
