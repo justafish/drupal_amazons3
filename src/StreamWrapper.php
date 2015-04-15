@@ -148,7 +148,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     // @todo Object constructor.
     foreach ($this->config->getSaveAsPaths() as $path) {
       if ($path === '*' || preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
-        $args[' ResponseContentDisposition'] = 'attachment; filename=' . basename($local_path);
+        $args['ResponseContentDisposition'] = 'attachment; filename=' . basename($local_path);
         break;
       }
     }
