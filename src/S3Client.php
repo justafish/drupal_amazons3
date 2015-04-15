@@ -9,6 +9,7 @@ namespace Drupal\amazons3;
 
 use Aws\Common\Credentials\Credentials;
 use Drupal\amazons3\Exception\S3ConnectValidationException;
+use Guzzle\Common\Collection;
 
 /**
  * A wrapper around S3Client::factory() using aws_key / aws_secret variables.
@@ -24,7 +25,7 @@ class S3Client {
    *
    * @todo Needs tests.
    *
-   * @param array $config
+   * @param array|Collection $config
    *   An array of configuration options to pass to \Aws\S3\S3Client::factory().
    *   If 'credentials' are set they will be used instead of aws_key and
    *   aws_secret.
