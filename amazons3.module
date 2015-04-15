@@ -12,7 +12,12 @@
  */
 function amazons3_stream_wrappers() {
   // This hook is called before hook_init(), so we have to manually register
-  // the autoloader.
+  // the autoloader. We also need to handle module upgrades where
+  // composer_manager might not be enabled yet.
+  if (!module_exists('composer_manager')) {
+    return;
+  }
+
   composer_manager_register_autoloader();
 
   return array(

@@ -196,6 +196,10 @@ function amazons3_update_7102(&$sandbox) {
  * Delete the HTTPS paths variable as all files are now served with HTTPS.
  */
 function amazons3_update_7200() {
+  if (!module_exists('composer_manager')) {
+    throw new DrupalUpdateException('Composer Manager must be enabled before upgrading to AmazonS3 7.x-2.x.');
+  }
+
   variable_del('amazons3_https');
 }
 
