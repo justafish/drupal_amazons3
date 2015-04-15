@@ -220,6 +220,24 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   }
 
   /**
+   * Return the target of the URI.
+   *
+   * @return string
+   *   The target file name of the URI.
+   */
+  protected function getTarget() {
+    if (!isset($this->uri)) {
+      throw new \LogicException('A URI must be set before calling getTarget().');
+    }
+
+    list($scheme, $target) = explode('://', $this->getUri(), 2);
+
+    // Remove erroneous leading or trailing, forward-slashes and backslashes.
+    // In the session:// scheme, there is never a leading slash on the target.
+    return trim($target, '\/');
+  }
+
+  /**
    * Return the local filesystem path.
    *
    * @todo Test this.
