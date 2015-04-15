@@ -225,7 +225,6 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * @param string $uri
    *   Optional URI, supplied when doing a move or rename.
    *
-   * @todo Move to a separate class that's injected.
    * @todo Test this.
    *
    * @return string
