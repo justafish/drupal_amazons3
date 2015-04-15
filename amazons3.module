@@ -14,10 +14,14 @@ use Drupal\amazons3\S3Client;
  * Create a stream wrapper for S3.
  */
 function amazons3_stream_wrappers() {
+  // This hook is called before hook_init(), so we have to manually register
+  // the autoloader.
+  composer_manager_register_autoloader();
+
   return array(
     's3' => array(
       'name' => 'Amazon S3',
-      'class' => 'AmazonS3StreamWrapper',
+      'class' => 'Drupal\amazons3\StreamWrapper',
       'description' => t('Amazon Simple Storage Service'),
     ),
   );
