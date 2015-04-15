@@ -228,11 +228,11 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    *   The local path.
    */
   protected function getLocalPath() {
-    if (!isset($uri)) {
+    if (!isset($this->uri)) {
       throw new \LogicException('A URI must be set before calling getLocalPath().');
     }
 
-    $path  = str_replace('s3://' . $this->config->getBucket(), '', $uri);
+    $path  = str_replace('s3://' . $this->config->getBucket(), '', $this->uri);
     $path = trim($path, '/');
     return $path;
   }
