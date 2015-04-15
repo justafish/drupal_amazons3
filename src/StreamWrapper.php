@@ -222,18 +222,14 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   /**
    * Return the local filesystem path.
    *
-   * @param string $uri
-   *   Optional URI, supplied when doing a move or rename.
-   *
    * @todo Test this.
    *
    * @return string
    *   The local path.
    */
-  protected function getLocalPath($uri = NULL) {
-    // @todo Remove the parameter and throw an exception instead.
+  protected function getLocalPath() {
     if (!isset($uri)) {
-      $uri = $this->getUri();
+      throw new \LogicException('A URI must be set before calling getLocalPath().');
     }
 
     $path  = str_replace('s3://' . $this->config->getBucket(), '', $uri);
