@@ -197,10 +197,10 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   }
 
   /**
-   * {@inheritdoc}
+   * @return bool
+   *   FALSE, as this stream wrapper does not support realpath().
    */
   public function realpath() {
-    // TODO: Implement realpath() method.
     return FALSE;
   }
 
