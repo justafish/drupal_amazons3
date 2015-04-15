@@ -190,3 +190,10 @@ function amazons3_update_7102(&$sandbox) {
   );
   db_change_field('amazons3_file', 'filesize', 'filesize', $spec);
 }
+
+/**
+ * Delete the HTTPS paths variable as all files are now served with HTTPS.
+ */
+function amazons3_update_7200() {
+  variable_del('amazons3_https');
+}
