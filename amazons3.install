@@ -31,6 +31,8 @@ function amazons3_requirements($phase) {
  * Implements hook_uninstall().
  */
 function amazons3_uninstall() {
+  variable_del('amazons3_key');
+  variable_del('amazons3_secret');
   variable_del('amazons3_bucket');
   variable_del('amazons3_cname');
   variable_del('amazons3_domain');
@@ -39,7 +41,6 @@ function amazons3_uninstall() {
   variable_del('amazons3_presigned_urls');
   variable_del('amazons3_saveas');
   variable_del('amazons3_rrs');
-  variable_del('amazons3_https');
   variable_del('amazons3_hostname');
 }
 
@@ -196,4 +197,25 @@ function amazons3_update_7102(&$sandbox) {
  */
 function amazons3_update_7200() {
   variable_del('amazons3_https');
+}
+
+/**
+ * Copy Amazon keys in the database from awssdk 1.x.
+ */
+function amazons3_update_7201() {
+  $t = get_t();
+  drupal_set_message($t('AmazonS3 no longer requires the AWS SDK module.'));
+  drupal_set_message($t('If your API keys are in settings.php, they will need to be renamed to amazons3_key and amazons3_secret. To avoid writing these values to the database, set amazons3_migrate_credentials to FALSE in settings.php.'));
+
+  if (variable_get('amazons3_migrate_credentials', TRUE)) {
+    if ($key = variable_get('aws_key', FALSE)) {
+      variable_set('amazons3_key', $key);
+    }
+
+    if ($secret = variable_get('aws_secret', FALSE)) {
+      variable_set('amazons3_secret', $secret);
+    }
+
+    drupal_set_message($t('Credentials have been migrated to AmazonS3 variables.'));
+  }
 }

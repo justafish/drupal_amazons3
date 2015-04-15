@@ -34,7 +34,7 @@ class S3Client {
    */
   public static function factory($config = array()) {
     if (!isset($config['credentials'])) {
-      $config['credentials'] = new Credentials(variable_get('aws_key'), variable_get('aws_secret'));
+      $config['credentials'] = new Credentials(variable_get('amazons3_key'), variable_get('amazons3_secret'));
     }
 
     return \Aws\S3\S3Client::factory($config);
