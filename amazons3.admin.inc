@@ -1,8 +1,5 @@
 <?php
 
-use Drupal\amazons3\Exception\S3ConnectValidationException;
-use Drupal\amazons3\S3Client;
-
 /**
  * Form API callback for the configuration form.
  */
@@ -28,6 +25,7 @@ function amazons3_admin() {
     '#title' => t('Default Bucket Name'),
     '#default_value' => variable_get('amazons3_bucket', ''),
     '#required' => TRUE,
+    '#element_validate' => array('amazons3_form_bucket_validate'),
   );
 
   $form['amazons3_cache'] = array(
@@ -148,23 +146,5 @@ function amazons3_admin_validate($form, &$form_state) {
     if (empty($keypair) || empty($pem)) {
       form_set_error('amazons3_cloudfront', t('You must configure your CloudFront credentials in the awksdk module.'));
     }
-  }
-
-  $hostname = $form_state['values']['amazons3_hostname'];
-
-  $config = array();
-  if (!empty($hostname)) {
-    $config['endpoint'] = $hostname;
-  }
-
-  try {
-    $s3 = S3Client::factory($config);
-    S3Client::validateBucketExists($bucket, $s3);
-  }
-  catch (S3ConnectValidationException $e) {
-    form_set_error('amazons3_bucket', t('The S3 access credentials are invalid or the bucket does not exist.'));
-  }
-  catch (Exception $e) {
-    form_set_error('amazons3_bucket', t('There was a problem connecting to S3. The following exception was thrown: @exception', array('@exception' => $e->getMessage())));
   }
 }

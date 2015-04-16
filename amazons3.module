@@ -1,5 +1,8 @@
 <?php
 
+use Drupal\amazons3\Exception\S3ConnectValidationException;
+use Drupal\amazons3\S3Client;
+
 /**
  * @file
  * Hook implementations for the AmazonS3 module.
@@ -15,7 +18,7 @@ function amazons3_stream_wrappers() {
   // the autoloader. We also need to handle module upgrades where
   // composer_manager might not be enabled yet.
   if (!module_exists('composer_manager')) {
-    return;
+    return array();
   }
 
   composer_manager_register_autoloader();
@@ -68,6 +71,187 @@ function amazons3_flush_caches() {
 }
 
 /**
+ * Implements hook_field_info_alter().
+ */
+function amazons3_field_info_alter(&$info) {
+  foreach (amazons3_file_like_field() as $type) {
+    // Use the default bucket as specified in the module configuration.
+    if (isset($info[$type])) {
+      $info[$type]['settings']['amazons3_bucket'] = variable_get('amazons3_bucket', '');
+    }
+  }
+}
+
+/**
+ * Return an array of field types that are like a file field.
+ *
+ * If a field type is calling file_* hooks to create it's field, it likely
+ * belongs here.
+ *
+ * @return array
+ *   An array of field types.
+ */
+function amazons3_file_like_field() {
+  return array('file', 'image');
+}
+
+/**
+ * Implements hook_field_widget_form_alter().
+ *
+ * Override file fields to use our destination function to determine the
+ * upload location for a file.
+ */
+function amazons3_field_widget_form_alter(&$element, &$form_state, $context) {
+  $field = $context['field'];
+  $instance = $context['instance'];
+  $delta = $context['delta'];
+
+  if (in_array($field['type'], amazons3_file_like_field())) {
+    $element[$delta]['#upload_location'] = amazons3_field_widget_uri($field, $instance);
+  }
+}
+
+/**
+ * Return the destination URI for a file field.
+ *
+ * @param array $field
+ *   A field array.
+ * @param array $instance
+ *   A field instance array.
+ * @param array $data
+ *   (optional) An array of token objects to pass to token_replace().
+ *
+ * @see file_field_widget_uri()
+ * @see token_replace()
+ *
+ * @return string
+ *   A file directory URI with tokens replaced.
+ */
+function amazons3_field_widget_uri(array $field, array $instance, array $data = array()) {
+  if ($field['settings']['uri_scheme'] == 's3') {
+    $destination = $field['settings']['amazons3_bucket'];
+    if (empty($destination)) {
+      $destination = variable_get('amazons3_bucket', '');
+    }
+    if (!empty($instance['settings']['file_directory'])) {
+      $destination .= '/' . trim($instance['settings']['file_directory'], '/');
+    }
+  }
+  else {
+    $destination = trim($instance['settings']['file_directory'], '/');
+  }
+
+  // Replace tokens.
+  $destination = token_replace($destination, $data);
+
+  return $field['settings']['uri_scheme'] . '://' . $destination;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function amazons3_form_field_ui_field_settings_form_alter(&$form, &$form_state, $form_id) {
+  $type = $form['field']['type']['#value'];
+  _amazons3_field_configuration($form, $type);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Add bucket configuration to each file field form.
+ */
+function amazons3_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id) {
+  $type = $form['#field']['type'];
+  _amazons3_field_configuration($form, $type);
+}
+
+/**
+ * Add S3 configuration to file field settings forms.
+ *
+ * @param array &$form
+ *   The form to alter.
+ * @param string $type
+ *   The field type being modified.
+ */
+function _amazons3_field_configuration(array &$form, $type) {
+  foreach (amazons3_file_like_field() as $types) {
+    if ($type == $types) {
+      $settings = &$form['field']['settings'];
+      $bucket_setting = isset($form['#field']['settings']['amazons3_bucket']) ? $form['#field']['settings']['amazons3_bucket'] : '';
+
+      $settings['uri_scheme']['#weight'] = 50;
+
+      $settings['amazons3_bucket'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Amazon S3 bucket'),
+        '#description' => t(
+          'Leave blank to use the site-wide default bucket <a href="@config">currently set to %bucket</a>.',
+          array(
+            '@config' => url('admin/config/media/amazons3'),
+            '%bucket' => variable_get('amazons3_bucket', ''),
+          )
+        ),
+        '#states' => array(
+          'visible' => array(
+            ':input[name="field[settings][uri_scheme]"]' => array('value' => 's3'),
+          ),
+        ),
+        '#default_value' => $bucket_setting,
+        '#element_validate' => array('amazons3_form_bucket_validate'),
+        '#weight' => 51,
+      );
+    }
+  }
+}
+
+/**
+ * Element validate callback to validate a bucket name.
+ *
+ * @param array &$element
+ *   The element to validate.
+ * @param array &$form_state
+ *   The current state of the form.
+ * @param array $form
+ *   The current form.
+ */
+function amazons3_form_bucket_validate(array &$element, array &$form_state, array $form) {
+  $bucket = $element['#value'];
+  if (empty($bucket)) {
+    return;
+  }
+
+  if (!isset($form_state['values']['amazons3_hostname'])) {
+    $hostname = variable_get('amazons3_hostname');
+  }
+  else {
+    $hostname = $form_state['values']['amazons3_hostname'];
+  }
+
+  $config = array();
+  if (!empty($hostname)) {
+    $config['endpoint'] = $hostname;
+  }
+
+  try {
+    $s3 = S3Client::factory($config);
+
+    // Check the bucket name first without a remote HTTP call.
+    if (!$s3->isValidBucketName($bucket)) {
+      form_error($element, t('The S3 bucket name is not valid.'));
+      return;
+    }
+
+    S3Client::validateBucketExists($bucket, $s3);
+  }
+  catch (S3ConnectValidationException $e) {
+    form_error($element, t('The S3 access credentials are invalid or the bucket does not exist.'));
+  }
+  catch (Exception $e) {
+    form_error($element, t('There was a problem connecting to S3. The following exception was thrown: @exception', array('@exception' => $e->getMessage())));
+  }
+}
+
+/**
  * Implements hook_field_default_field_bases_alter().
  *
  * Allows a variable to override all exported field bases to use 'Amazon S3' as
@@ -80,7 +264,7 @@ function amazons3_flush_caches() {
  */
 function amazons3_field_default_field_bases_alter(&$fields) {
   if ($uri_scheme = variable_get('amazons3_file_uri_scheme_override', FALSE)) {
-    foreach($fields as $key => $item) {
+    foreach ($fields as $key => $item) {
       if (isset($item['settings']['uri_scheme'])) {
         $fields[$key]['settings']['uri_scheme'] = $uri_scheme;
       }
