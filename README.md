@@ -7,18 +7,10 @@ You can also use it with other [S3 compatible cloud storage services](http://en.
 You can switch it on as the default file system scheme, or individually for file and image fields.
 
 ## Requirements
-- [AWSSDK for PHP](http://drupal.org/project/awssdk) (Drupal module)
-- [Libraries API](http://drupal.org/project/libraries)
-- [AWS SDK for PHP 1.6.2](http://pear.amazonwebservices.com/get/sdk-1.6.2.tgz)
-
-
-You will need to set allow_url_fopen to "on" in your PHP settings. This option enables the URL-aware fopen wrappers that enable accessing URL object like files. See [http://uk.php.net/manual/en/function.fopen.php](http://uk.php.net/manual/en/function.fopen.php)
+- [Composer Manager](https://www.drupal.org/project/composer_manager)
+- [PHP's cURL extension](https://php.net/manual/en/book.curl.php) (nearly always available by default)
 
 ## Known Issues
-### SSL
-Some curl libraries, such as the one bundled with MAMP, do not come with authoritative certificate files.
-
-[http://dev.soup.io/post/56438473/If-youre-using-MAMP-and-doing-something](http://dev.soup.io/post/56438473/If-youre-using-MAMP-and-doing-something)
 
 ### Bucket names with "." in them
 Newer versions of OpenSSL also have issues with buckets with "." in their names. Bucket names with dots in them will use a slightly different path when delivering files over SSL. This is only relevant if you're not using a CNAME to alias a bucket to your own domain. See https://forums.aws.amazon.com/thread.jspa?threadID=69108&start=0&tstart=0#308166
