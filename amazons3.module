@@ -2,8 +2,11 @@
 
 /**
  * @file
- * Provides S3 stream wrapper
+ * Hook implementations for the AmazonS3 module.
  */
+
+use Drupal\amazons3\Exception\S3ConnectValidationException;
+use Drupal\amazons3\S3Client;
 
 /**
  * Implements hook_stream_wrappers().
@@ -11,10 +14,14 @@
  * Create a stream wrapper for S3.
  */
 function amazons3_stream_wrappers() {
+  // This hook is called before hook_init(), so we have to manually register
+  // the autoloader.
+  composer_manager_register_autoloader();
+
   return array(
     's3' => array(
       'name' => 'Amazon S3',
-      'class' => 'AmazonS3StreamWrapper',
+      'class' => 'Drupal\amazons3\StreamWrapper',
       'description' => t('Amazon Simple Storage Service'),
     ),
   );
@@ -192,37 +199,22 @@ function amazons3_admin_validate($form, &$form_state) {
     }
   }
 
-  if (!libraries_load('awssdk')) {
-    form_set_error('amazons3_bucket', t('Unable to load the AWS SDK. Please check you have installed the library correctly and configured your S3 credentials.'));
-  }
-  elseif (!class_exists('AmazonS3')) {
-    form_set_error('amazons3_bucket', t('Cannot load AmazonS3 class. Please check the awssdk is installed correctly'));
-  }
-  else {
-    try {
-      $s3 = new AmazonS3();
-      if (!empty($form_state['values']['amazons3_hostname'])) {
-        $s3->set_hostname($form_state['values']['amazons3_hostname']);
-      }
-      $response = $s3->list_objects($bucket, array(
-          'max-keys' => 1,
-        ));
-      if (!$s3->if_bucket_exists($bucket) || !$response->isOK()) {
-        form_set_error('amazons3_bucket', t('The S3 access credentials are invalid or the bucket does not exist'));
-      }
-    }
-    catch (RequestCore_Exception $e) {
-      if (strstr($e->getMessage(), 'SSL certificate problem')) {
-        form_set_error('amazons3_bucket', t('There was a problem with the SSL certificate. Try setting AWS_CERTIFICATE_AUTHORITY to true in "libraries/awssdk/config.inc.php". You may also have a curl library (e.g. the default shipped with MAMP) that does not contain trust certificates for the major authorities. The following exception was thrown: @exception', array('@exception' => $e->getMessage())));
-      }
-      else {
-        form_set_error('amazons3_bucket', t('There was a problem connecting to S3. The following exception was thrown: @exception', array('@exception' => $e->getMessage())));
-      }
+  $hostname = $form_state['values']['amazons3_hostname'];
 
-    }
-    catch (Exception $e) {
-      form_set_error('amazons3_bucket', t('There was a problem using S3. The following exception was thrown: @exception', array('@exception' => $e->getMessage())));
-    }
+  $config = array();
+  if (!empty($hostname)) {
+    $config['endpoint'] = $hostname;
+  }
+
+  try {
+    $s3 = S3Client::factory($config);
+    S3Client::validateBucketExists($bucket, $s3);
+  }
+  catch (S3ConnectValidationException $e) {
+    form_set_error('amazons3_bucket', t('The S3 access credentials are invalid or the bucket does not exist.'));
+  }
+  catch (Exception $e) {
+    form_set_error('amazons3_bucket', t('There was a problem connecting to S3. The following exception was thrown: @exception', array('@exception' => $e->getMessage())));
   }
 }
 

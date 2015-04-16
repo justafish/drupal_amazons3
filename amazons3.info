@@ -1,10 +1,8 @@
-; $Id$
 name = AmazonS3
-description = Provides S3 stream wrapper class
+description = Provides S3 integration with Drupal's file system.
 package = Amazon S3
 core = 7.x
-files[] = amazons3.module
-files[] = AmazonS3StreamWrapper.inc
-dependencies[] = awssdk (>=5.1)
-dependencies[] = libraries (2.x)
+php = 5.4
 configure = admin/config/media/amazons3
+
+dependencies[] = composer_manager
