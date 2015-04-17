@@ -307,6 +307,9 @@ class StreamWrapperConfiguration extends Collection {
       $config->enableCaching();
       $config->setCacheLifetime(variable_get('amazons3_cache_expiration', NULL));
     }
+    else {
+      $config->disableCaching();
+    }
 
     // Torrent list.
     $torrents = explode("\n", variable_get('amazons3_torrents', $defaults['torrentPaths']));
