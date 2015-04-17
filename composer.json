@@ -13,9 +13,20 @@
         }
     ],
     "require": {
-        "aws/aws-sdk-php": "~2.8"
+        "aws/aws-sdk-php": "~2.8",
+        "capgemini/drupal_doctrine_cache": "~0.1"
     },
     "autoload": {
         "psr-4": {"Drupal\\amazons3\\": "src/"}
-    }
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/deviantintegral/drupal-doctrine-cache.git"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/deviantintegral/aws-sdk-php.git"
+        }
+    ]
 }
