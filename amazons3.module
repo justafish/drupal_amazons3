@@ -59,6 +59,15 @@ function amazons3_permission() {
 }
 
 /**
+ * Implements hook_flush_caches().
+ */
+function amazons3_flush_caches() {
+  return array(
+    'cache_amazons3_metadata',
+  );
+}
+
+/**
  * Implements hook_field_default_field_bases_alter().
  *
  * Allows a variable to override all exported field bases to use 'Amazon S3' as
