@@ -68,7 +68,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
 
     $this->config = $config;
 
-    static::$client = S3Client::factory();
+    static::$client = S3Client::factory($config);
 
     if ($this->config->isCaching() && !static::$cache) {
       $cache = new \Capgemini\Cache\DrupalDoctrineCache();
