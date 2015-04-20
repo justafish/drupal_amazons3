@@ -2,6 +2,7 @@
 
 namespace Drupal\amazons3;
 
+use Aws\S3\S3Client;
 use Guzzle\Cache\DoctrineCacheAdapter;
 
 /**
@@ -68,7 +69,9 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
 
     $this->config = $config;
 
-    static::$client = S3Client::factory($config);
+    if (!$this->getClient()) {
+      $this->setClient(S3Client::factory());
+    }
 
     if ($this->config->isCaching() && !static::$cache) {
       $cache = new \Capgemini\Cache\DrupalDoctrineCache();
@@ -78,6 +81,26 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
         $this->config->getCacheLifetime()
       );
     }
+  }
+
+  /**
+   * Get the client associated with this stream wrapper.
+   *
+   * @return \Aws\S3\S3Client
+   */
+  public static function getClient() {
+    return self::$client;
+  }
+
+  /**
+   * Set the client associated with this stream wrapper.
+   *
+   * Note that all stream wrapper instances share a global client.
+   *
+   * @param \Aws\S3\S3Client $client
+   */
+  public static function setClient(S3Client $client) {
+    self::$client = $client;
   }
 
   /**
