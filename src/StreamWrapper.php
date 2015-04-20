@@ -30,9 +30,16 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   /**
    * Instance URI referenced as "s3://bucket/key"
    *
-   * @var string
+   * @var S3Url
    */
   protected $uri;
+
+  /**
+   * The URL associated with the S3 object.
+   *
+   * @var S3URL
+   */
+  protected $s3Url;
 
   /**
    * Set default configuration to use when constructing a new stream wrapper.
@@ -104,23 +111,27 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * {@inheritdoc}
    */
   function setUri($uri) {
-    $this->uri = $uri;
+    $this->uri = S3Url::factory($uri);
   }
 
   /**
    * {@inheritdoc}
    */
   public function getUri() {
-    return $this->uri;
+    return (string) $this->uri;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getExternalUrl() {
+    if (!isset($this->uri)) {
+      throw new \LogicException('A URI must be set before calling getExternalUrl().');
+    }
+
     $local_path = $this->getLocalPath();
     $args = array(
-      'Bucket' => $this->config->getBucket(),
+      'Bucket' => $this->uri->getBucket(),
       'Key' => $local_path,
       'Scheme' => 'https',
     );
@@ -165,7 +176,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     }
 
     // Generate a standard URL.
-    $url = static::$client->getObjectUrl($this->config->getBucket(), $this->getLocalPath());
+    $url = static::$client->getObjectUrl($this->uri->getBucket(), $this->getLocalPath());
 
     return $url;
   }
@@ -219,33 +230,12 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * {@inheritdoc}
    */
   public function dirname($uri = NULL) {
-    list($scheme, $target) = explode('://', $uri, 2);
-    $target  = $this->getTarget($uri);
-    $dirname = dirname($target);
-
-    if ($dirname === '.') {
-      $dirname = '';
-    }
-
-    return $scheme . '://' . $dirname;
-  }
-
-  /**
-   * Return the target of the URI.
-   *
-   * @return string
-   *   The target file name of the URI.
-   */
-  protected function getTarget() {
-    if (!isset($this->uri)) {
-      throw new \LogicException('A URI must be set before calling getTarget().');
-    }
-
-    list($scheme, $target) = explode('://', $this->getUri(), 2);
-
-    // Remove erroneous leading or trailing, forward-slashes and backslashes.
-    // In the session:// scheme, there is never a leading slash on the target.
-    return trim($target, '\/');
+    $s3url = S3Url::factory($uri, $this->config);
+    $s3url->normalizePath();
+    $pathSegments = $s3url->getPathSegments();
+    array_pop($pathSegments);
+    $s3url->setPath($pathSegments);
+    return trim((string) $s3url, '/');
   }
 
   /**
@@ -261,7 +251,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
       throw new \LogicException('A URI must be set before calling getLocalPath().');
     }
 
-    $path  = str_replace('s3://' . $this->config->getBucket(), '', $this->uri);
+    $path = $this->uri->getPath();
     $path = trim($path, '/');
     return $path;
   }
