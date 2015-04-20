@@ -53,6 +53,27 @@ class S3Url extends Url {
   }
 
   /**
+   * Set the path part of the URL.
+   *
+   * Since we are using these URLs in a non-HTTP context, we don't replace
+   * spaces or question marks.
+   *
+   * @param array|string $path Path string or array of path segments
+   *
+   * @return Url
+   */
+  public function setPath($path)
+  {
+    if (is_array($path)) {
+      $path = '/' . implode('/', $path);
+    }
+
+    $this->path = $path;
+
+    return $this;
+  }
+
+  /**
    * Overrides factory() to support bucket configs.
    *
    * @param string $url
@@ -83,5 +104,22 @@ class S3Url extends Url {
     return new static($parts['scheme'], $parts['host'], $parts['user'],
       $parts['pass'], $parts['port'], $parts['path'], $parts['query'],
       $parts['fragment']);
+  }
+
+  /**
+   * Generate a URL from a bucket and key.
+   *
+   * @param string $bucket
+   *   The bucket the key is in.
+   * @param string $key
+   *   The key of the object.
+   *
+   * @return \Drupal\amazons3\S3Url
+   *   A S3Url object.
+   */
+  public static function fromKey($bucket, $key) {
+    $url = new S3Url('s3', $bucket);
+    $url->setPath($key);
+    return $url;
   }
 }
