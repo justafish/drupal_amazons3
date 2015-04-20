@@ -134,6 +134,13 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * {@inheritdoc}
    */
   function setUri($uri) {
+    // file_stream_wrapper_get_instance_by_scheme() assumes that all schemes
+    // can work without a directory, but S3 requires a bucket. If a raw scheme
+    // is passed in, we append our default bucket.
+    if ($uri == 's3://') {
+      $uri = 's3://' . $this->config->getBucket();
+    }
+
     $this->uri = S3Url::factory($uri);
   }
 
