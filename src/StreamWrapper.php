@@ -2,6 +2,8 @@
 
 namespace Drupal\amazons3;
 
+use Guzzle\Cache\DoctrineCacheAdapter;
+
 /**
  * @file
  * Drupal stream wrapper implementation for Amazon S3
@@ -60,6 +62,15 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     $this->config = $config;
 
     static::$client = S3Client::factory();
+
+    if ($this->config->isCaching() && !static::$cache) {
+      $cache = new \Capgemini\Cache\DrupalDoctrineCache();
+      $cache->setCacheTable('cache_amazons3_metadata');
+      static::attachCache(
+        new DoctrineCacheAdapter($cache),
+        $this->config->getCacheLifetime()
+      );
+    }
   }
 
   /**

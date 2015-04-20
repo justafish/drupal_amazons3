@@ -32,9 +32,26 @@ function amazons3_admin() {
 
   $form['amazons3_cache'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Enable database caching'),
-    '#description' => t('Enable a local file metadata cache, this significantly reduces calls to S3'),
-    '#default_value' => variable_get('amazons3_cache', 1),
+    '#title' => t('Enable metadata caching'),
+    '#description' => t('Enable a local file metadata cache to reduce calls to S3.'),
+    '#default_value' => variable_get('amazons3_cache', TRUE),
+  );
+
+  $expiration = variable_get('amazons3_cache_expiration', CACHE_PERMANENT);
+
+  $period = drupal_map_assoc(array(0, 60, 180, 300, 600, 900, 1800, 2700, 3600, 10800, 21600, 32400, 43200, 86400), 'format_interval');
+  $period[0] = '<' . t('none') . '>';
+  $form['amazons3_cache_expiration'] = array(
+    '#type' => 'select',
+    '#title' => t('Expiration of cached file metadata'),
+    '#default_value' => $expiration,
+    '#options' => $period,
+    '#description' => t('The maximum time Amazon S3 file metadata will be cached. If multiple API clients are interacting with the same S3 buckets, this setting might need to be reduced or disabled.'),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="amazons3_cache"]' => array('checked' => TRUE),
+      ),
+    ),
   );
 
   $form['amazons3_cname'] = array(
@@ -115,17 +132,6 @@ function amazons3_admin() {
     '#rows' => 10,
   );
 
-  $form['amazons3_clear_cache'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Clear cache'),
-  );
-
-  $form['amazons3_clear_cache']['clear'] = array(
-    '#type' => 'submit',
-    '#value' => t('Clear file metadata cache'),
-    '#submit' => array('amazons3_clear_cache_submit'),
-  );
-
   return system_settings_form($form);
 }
 
@@ -162,12 +168,3 @@ function amazons3_admin_validate($form, &$form_state) {
     form_set_error('amazons3_bucket', t('There was a problem connecting to S3. The following exception was thrown: @exception', array('@exception' => $e->getMessage())));
   }
 }
-
-/**
- * Admin sub-form submit callback; clear file metadata cache.
- */
-function amazons3_clear_cache_submit($form, &$form_state) {
-  db_query('TRUNCATE TABLE {amazons3_file}');
-  drupal_set_message(t('Cache cleared.'));
-}
-

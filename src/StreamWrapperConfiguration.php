@@ -48,7 +48,13 @@ class StreamWrapperConfiguration extends Collection {
     $defaults = self::defaults();
     $required = self::required();
 
-    return parent::fromConfig($config, $defaults, $required);
+    $data = $config + $defaults;
+
+    if ($missing = array_diff($required, array_keys($data))) {
+      throw new \InvalidArgumentException('Config is missing the following keys: ' . implode(', ', $missing));
+    }
+
+    return new static($data);
   }
 
   /**
@@ -64,6 +70,7 @@ class StreamWrapperConfiguration extends Collection {
       'cloudFront' => array(),
       'domain' => NULL,
       'caching' => TRUE,
+      'cacheLifetime' => NULL,
       'reducedRedundancyPaths' => array(),
     );
     return $defaults;
@@ -211,21 +218,45 @@ class StreamWrapperConfiguration extends Collection {
    * @return boolean
    */
   public function isCaching() {
-    return $this->data['caching'];
+    return (bool) $this->data['caching'];
   }
 
   /**
-   *
+   * Enable metadata caching.
    */
   public function enableCaching() {
     $this->data['caching'] = TRUE;
   }
 
   /**
-   *
+   * Disable metadata caching.
    */
   public function disableCaching() {
     $this->data['caching'] = FALSE;
+  }
+
+  /**
+   * Set the cache expiration.
+   *
+   * This method must only be called if caching is enabled. Use CACHE_PERMANENT
+   * to cache with no expiration.
+   *
+   * @param int $expiration
+   */
+  public function setCacheLifetime($expiration) {
+    if (!$this->isCaching()) {
+      throw new \LogicException('Caching must be enabled before setting a expiration.');
+    }
+
+    $this->data['expiration'] = $expiration;
+  }
+
+  /**
+   * @return int
+   *   The cache expiration, in seconds. Zero means expiration is disabled.
+   */
+  public function getCacheLifetime() {
+    return $this->data['expiration'];
   }
 
   /**
@@ -249,10 +280,10 @@ class StreamWrapperConfiguration extends Collection {
    */
   public static function fromDrupalVariables() {
     $config = new static();
+    $config = self::fromConfig(array('bucket' => variable_get('amazons3_bucket', NULL)));
     $defaults = $config->defaults();
 
     $config->setHostname(variable_get('amazons3_hostname', $defaults['hostname']));
-    $config->setBucket(variable_get('amazons3_bucket', $defaults['bucket']));
 
     // CNAME support for customizing S3 URLs.
     if (variable_get('amazons3_cname', FALSE)) {
@@ -272,7 +303,11 @@ class StreamWrapperConfiguration extends Collection {
     }
 
     // Check whether local file caching is turned on.
-    if (!variable_get('amazons3_cache', $defaults['caching'])) {
+    if (variable_get('amazons3_cache', $defaults['caching'])) {
+      $config->enableCaching();
+      $config->setCacheLifetime(variable_get('amazons3_cache_expiration', NULL));
+    }
+    else {
       $config->disableCaching();
     }
 
