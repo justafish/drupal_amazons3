@@ -76,8 +76,7 @@ function amazons3_image_deliver() {
 
   // If the image style doesn't exist, we can return early.
   if (!$style = image_style_load($style_name)) {
-    drupal_not_found();
-    return;
+    return MENU_NOT_FOUND;
   }
 
   // Pop off the style name; the rest is our key to the original image.
@@ -94,8 +93,7 @@ function amazons3_image_deliver() {
   if (!file_exists($destination)) {
     // If there is no source image we can 404 early.
     if (!file_exists($source)) {
-      drupal_not_found();
-      return;
+      return MENU_NOT_FOUND;
     }
 
     $lock_name = 'amazons3_image_style_deliver:' . drupal_hash_base64($destination_key);
