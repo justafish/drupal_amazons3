@@ -138,7 +138,7 @@ class S3Url extends Url {
    */
   public static function fromKey($bucket, $key) {
     $url = new S3Url($bucket);
-    $url->setPath($key);
+    $url->setPath('/' . $key);
     return $url;
   }
 }
