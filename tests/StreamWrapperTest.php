@@ -38,7 +38,30 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
   }
 
   /**
+   * Test setting and getting the default configuration.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::setDefaultConfig
+   * @covers \Drupal\amazons3\StreamWrapper::getDefaultConfig
+   */
+  public function testSetDefaultConfig() {
+    $oldConfig = StreamWrapper::getDefaultConfig();
+
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+    ]);
+    StreamWrapper::setDefaultConfig($config);
+    $this->assertEquals($config, StreamWrapper::getDefaultConfig());
+
+    if ($oldConfig) {
+      StreamWrapper::setDefaultConfig($oldConfig);
+    }
+  }
+
+  /**
    * Test that a null dirname returns the bucket associated with the wrapper.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::dirname
    */
   public function testDirnameNull() {
     $this->assertEquals('s3://bucket.example.com', $this->wrapper->dirname());
@@ -46,6 +69,8 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
 
   /**
    * Test that we can fetch the dirname from a different bucket.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::dirname
    */
   public function testDirnameBucket() {
     $this->assertEquals('s3://bucket.different.com', $this->wrapper->dirname('s3://bucket.different.com'));
@@ -53,6 +78,8 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
 
   /**
    * Test that dirname works with a key.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::dirname
    */
   public function testDirnameSubdir() {
     $this->assertEquals('s3://bucket.example.com', $this->wrapper->dirname('s3://bucket.example.com/subdir'));
@@ -60,6 +87,8 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
 
   /**
    * Test that dirname works with a pseudo directory.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::dirname
    */
   public function testDirnameNested() {
     $this->assertEquals('s3://bucket.example.com/subdir', $this->wrapper->dirname('s3://bucket.example.com/subdir/second-subdir'));
@@ -67,6 +96,8 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
 
   /**
    * Test that dirname properly handles trailing slashes.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::dirname
    */
   public function testDirnameTrailingSlash() {
     $this->assertEquals('s3://bucket.example.com/subdir/second-subdir', $this->wrapper->dirname('s3://bucket.example.com/subdir/second-subdir/'));

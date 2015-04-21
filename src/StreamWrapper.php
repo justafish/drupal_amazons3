@@ -59,6 +59,15 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   }
 
   /**
+   * Return the default configuration.
+   *
+   * @return \Drupal\amazons3\StreamWrapperConfiguration
+   */
+  public static function getDefaultConfig() {
+    return static::$defaultConfig;
+  }
+
+  /**
    * Construct a new stream wrapper.
    *
    * @param \Drupal\amazons3\StreamWrapperConfiguration $config
