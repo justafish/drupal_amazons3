@@ -85,6 +85,21 @@ class S3Url extends Url {
   }
 
   /**
+   * Return the image style URL associated with this URL.
+   *
+   * @param string $style_name
+   *   The name of the image style.
+   *
+   * @return \Drupal\amazons3\S3Url
+   *   An image style URL.
+   */
+  public function getImageStyleUrl($style_name) {
+    $styleUrl = new S3Url($this->getBucket());
+    $styleUrl->setPath("/styles/$style_name/" . $this->getKey());
+    return $styleUrl;
+  }
+
+  /**
    * Overrides factory() to support bucket configs.
    *
    * @param string $url
