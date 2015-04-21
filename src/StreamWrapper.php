@@ -2,8 +2,8 @@
 
 namespace Drupal\amazons3;
 
-use Aws\S3\S3Client;
 use Guzzle\Cache\DoctrineCacheAdapter;
+use \Aws\S3\S3Client as AwsS3Client;
 
 /**
  * @file
@@ -99,7 +99,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    *
    * @param \Aws\S3\S3Client $client
    */
-  public static function setClient(S3Client $client) {
+  public static function setClient(AwsS3Client $client) {
     self::$client = $client;
   }
 
@@ -291,7 +291,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    *
    * @param \Aws\S3\S3Client $client
    */
-  public static function register(\Aws\S3\S3Client $client) {
+  public static function register(AwsS3Client $client) {
     throw new \LogicException('Drupal handles registration of stream wrappers. Implement hook_stream_wrappers() instead.');
   }
 
