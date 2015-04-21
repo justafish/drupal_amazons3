@@ -15,6 +15,13 @@ use \Aws\S3\S3Client as AwsS3Client;
 class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrapperInterface {
 
   /**
+   * The path to the image style generation callback.
+   *
+   * @const string
+   */
+  const stylesCallback = 'amazons3/image-derivative';
+
+  /**
    * Default configuration used when constructing a new stream wrapper.
    *
    * @var \Drupal\amazons3\StreamWrapperConfiguration
@@ -159,12 +166,22 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
       throw new \LogicException('A URI must be set before calling getExternalUrl().');
     }
 
-    $local_path = $this->getLocalPath();
+    $path_segments = $this->uri->getPathSegments();
     $args = array(
       'Bucket' => $this->uri->getBucket(),
-      'Key' => $local_path,
+      'Key' => $this->uri->getKey(),
       'Scheme' => 'https',
     );
+
+    // Image styles support
+    // Delivers the first request to an image from the private file system
+    // otherwise it returns an external URL to an image that has not been
+    // created yet.
+    if ($path_segments[0] === 'styles') {
+      if (!file_exists((string) $this->uri)) {
+        return url($this::stylesCallback . '/' . $this->uri->getBucket() . $this->uri->getPath(), array('absolute' => TRUE));
+      }
+    }
 
     // Allow other modules to change the download link type.
     // @todo Rather than passing an info array and a path, we should look into
