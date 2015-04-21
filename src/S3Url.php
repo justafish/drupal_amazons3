@@ -14,6 +14,17 @@ use Guzzle\Http\Url;
 class S3Url extends Url {
 
   /**
+   * Override __construct() to default scheme to s3.
+   *
+   * @param string $bucket
+   *   The bucket to use for the URL.
+   */
+  public function __construct($bucket, $path = null) {
+    parent::__construct('s3', $bucket, null, null, null, $path);
+  }
+
+
+  /**
    * Return the bucket associated with the URL.
    *
    * @return string
@@ -96,14 +107,7 @@ class S3Url extends Url {
 
     $parts += $defaults;
 
-    // Convert the query string into a QueryString object
-    if ($parts['query'] || 0 !== strlen($parts['query'])) {
-      $parts['query'] = QueryString::fromString($parts['query']);
-    }
-
-    return new static($parts['scheme'], $parts['host'], $parts['user'],
-      $parts['pass'], $parts['port'], $parts['path'], $parts['query'],
-      $parts['fragment']);
+    return new static($parts['host'], $parts['path']);
   }
 
   /**
@@ -118,7 +122,7 @@ class S3Url extends Url {
    *   A S3Url object.
    */
   public static function fromKey($bucket, $key) {
-    $url = new S3Url('s3', $bucket);
+    $url = new S3Url($bucket);
     $url->setPath($key);
     return $url;
   }
