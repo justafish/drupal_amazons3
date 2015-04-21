@@ -84,11 +84,16 @@ function amazons3_image_deliver() {
   $path = $args;
   $key = implode('/', $path);
 
-  // @todo Handle image tokens.
-
   $source = S3Url::fromKey($bucket, $key);
-  $destination_key = "styles/$style_name/" . $key;
-  $destination = S3Url::fromKey($bucket, $destination_key);
+  $destination = $source->getImageStyleUrl($style_name);
+
+  // Check that the image style token is valid.
+  if (!variable_get('image_allow_insecure_derivatives', FALSE) || strpos($destination->getKey(), 'styles/') === 0) {
+    $valid = isset($_GET[IMAGE_DERIVATIVE_TOKEN]) && $_GET[IMAGE_DERIVATIVE_TOKEN] === image_style_path_token($style['name'], (string) $source);
+    if (!$valid) {
+      return MENU_ACCESS_DENIED;
+    }
+  }
 
   if (!file_exists($destination)) {
     // If there is no source image we can 404 early.
@@ -96,8 +101,8 @@ function amazons3_image_deliver() {
       return MENU_NOT_FOUND;
     }
 
-    $lock_name = 'amazons3_image_style_deliver:' . drupal_hash_base64($destination_key);
-    $destination_temp = "temporary://amazons3/$destination_key";
+    $lock_name = 'amazons3_image_style_deliver:' . drupal_hash_base64($destination->getKey());
+    $destination_temp = 'temporary://amazons3/' . $destination->getKey();
 
     // Prevent cache stampedes.
     if (!lock_acquire($lock_name)) {
