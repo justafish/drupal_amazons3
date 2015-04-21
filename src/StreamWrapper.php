@@ -260,6 +260,13 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * {@inheritdoc}
    */
   public function dirname($uri = NULL) {
+    // drupal_dirname() doesn't call setUri() before calling. That lead our URI
+    // to be stuck at the default 's3://'' that is set by
+    // file_stream_wrapper_get_instance_by_scheme().
+    if ($uri) {
+      $this->setUri($uri);
+    }
+
     $s3url = S3Url::factory($uri, $this->config);
     $s3url->normalizePath();
     $pathSegments = $s3url->getPathSegments();
