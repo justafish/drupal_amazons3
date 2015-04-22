@@ -151,6 +151,11 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
       'credentials' => new Credentials('placeholder', 'placeholder'),
     ]));
     $this->wrapper = new StreamWrapper($config);
+
+    if (in_array('s3', stream_get_wrappers())) {
+      stream_wrapper_unregister('s3');
+    }
+    stream_wrapper_register('s3', '\Drupal\amazons3\StreamWrapper', STREAM_IS_URL);
   }
 
   /**
@@ -222,6 +227,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $cache = $reflect->getProperty('cache');
     $cache->setAccessible(TRUE);
     $this->assertInstanceOf('Capgemini\Cache\DrupalDoctrineCache', $cache->getValue()->getCacheObject());
+    StreamWrapper::detachCache();
   }
 
   /**
@@ -264,6 +270,16 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
   public function testExternalUriNotSet() {
     $wrapper = new StreamWrapper();
     $wrapper->getExternalUrl();
+  }
+
+  /**
+   * Test when an image doesn't exist that we return the internal style URL.
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   */
+  public function testExternalImageStyleUri() {
+    $wrapper = new StreamWrapper();
+    $wrapper->setUri('s3://bucket.example.com/styles/thumbnail/image.jpg');
+    $this->assertEquals('http://amazons3.example.com/' . StreamWrapper::stylesCallback . '/bucket.example.com/styles/thumbnail/image.jpg', $wrapper->getExternalUrl());
   }
 
   /**
