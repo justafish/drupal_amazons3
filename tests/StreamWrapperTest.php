@@ -1,6 +1,21 @@
 <?php
 
-namespace Drupal\amazons3Test;
+namespace Drupal\amazons3 {
+
+  /**
+   * Static version of variable_get() for testing.
+   *
+   * @param string $name
+   * @param null $default
+   * @return string
+   */
+  function variable_get($name, $default = NULL) {
+    return 'placeholder';
+  }
+
+}
+
+namespace Drupal\amazons3Test {
 
 use Aws\Common\Credentials\Credentials;
 use Aws\S3\S3Client;
@@ -102,4 +117,6 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
   public function testDirnameTrailingSlash() {
     $this->assertEquals('s3://bucket.example.com/subdir/second-subdir', $this->wrapper->dirname('s3://bucket.example.com/subdir/second-subdir/'));
   }
+}
+
 }
