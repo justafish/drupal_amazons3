@@ -7,6 +7,7 @@ namespace Drupal\amazons3\DrupalAdapter;
  *
  * @trait Common
  * @package Drupal\amazons3\DrupalAdapter
+ * @codeCoverageIgnore
  */
 trait Common {
 

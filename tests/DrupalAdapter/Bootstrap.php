@@ -7,6 +7,7 @@ namespace Drupal\amazons3Test\DrupalAdapter;
  *
  * @class Bootstrap
  * @package Drupal\amazons3\DrupalAdapter
+ * @codeCoverageIgnore
  */
 trait Bootstrap {
 

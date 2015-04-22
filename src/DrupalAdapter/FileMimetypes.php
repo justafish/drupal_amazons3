@@ -7,6 +7,7 @@ namespace Drupal\amazons3\DrupalAdapter;
  *
  * @trait FileMimetypes
  * @package Drupal\amazons3\DrupalAdapter
+ * @codeCoverageIgnore
  */
 trait FileMimetypes {
 
