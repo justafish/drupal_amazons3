@@ -106,6 +106,25 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
   }
 
   /**
+   * Test that a Drupal cache adapter is created.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::__construct
+   */
+  public function testCreateCache() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => TRUE,
+      'expiration' => 0,
+    ]);
+
+    $wrapper = new StreamWrapper($config);
+    $reflect = new \ReflectionObject($wrapper);
+    $cache = $reflect->getProperty('cache');
+    $cache->setAccessible(TRUE);
+    $this->assertInstanceOf('Capgemini\Cache\DrupalDoctrineCache', $cache->getValue()->getCacheObject());
+  }
+
+  /**
    * Test that a null dirname returns the bucket associated with the wrapper.
    *
    * @covers \Drupal\amazons3\StreamWrapper::dirname
