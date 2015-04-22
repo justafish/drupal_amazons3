@@ -286,6 +286,8 @@ class StreamWrapperConfiguration extends Collection {
    * Set the stream wrapper configuration using Drupal variables.
    *
    * @return StreamWrapperConfiguration
+   *
+   * @codeCoverageIgnore
    */
   public static function fromDrupalVariables() {
     $config = new static();
