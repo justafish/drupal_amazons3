@@ -14,6 +14,8 @@ use \Aws\S3\S3Client as AwsS3Client;
  * the s3:// prefix.
  */
 class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrapperInterface {
+  use DrupalAdapter\Common;
+  use DrupalAdapter\FileMimetypes;
 
   /**
    * The path to the image style generation callback.
@@ -80,9 +82,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
         $config = static::$defaultConfig;
       }
       else {
-        // @codeCoverageIgnoreStart
         $config = StreamWrapperConfiguration::fromDrupalVariables();
-        // @codeCoverageIgnoreEnd
       }
     }
 
@@ -194,7 +194,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     // created yet.
     if ($path_segments[0] === 'styles') {
       if (!file_exists((string) $this->uri)) {
-        return url($this::stylesCallback . '/' . $this->uri->getBucket() . $this->uri->getPath(), array('absolute' => TRUE));
+        return $this->url($this::stylesCallback . '/' . $this->uri->getBucket() . $this->uri->getPath(), array('absolute' => TRUE));
       }
     }
 
@@ -250,8 +250,11 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    */
   public static function getMimeType($uri, $mapping = NULL) {
     // Load the default file map.
-    include_once DRUPAL_ROOT . '/includes/file.mimetypes.inc';
-    $mapping = file_mimetype_mapping();
+    // @codeCoverageIgnoreStart
+    if (!$mapping) {
+      $mapping = static::file_mimetype_mapping();
+    }
+    // @codeCoverageIgnoreEnd
 
     $extension = '';
     $file_parts = explode('.', basename($uri));

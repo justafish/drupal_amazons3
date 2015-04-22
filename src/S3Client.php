@@ -19,6 +19,7 @@ use Guzzle\Common\Collection;
  * @package Drupal\amazons3
  */
 class S3Client {
+  use DrupalAdapter\Bootstrap;
 
   /**
    * Create a new S3Client using aws_key / aws_secret $conf variables.
@@ -34,7 +35,7 @@ class S3Client {
    */
   public static function factory($config = array()) {
     if (!isset($config['credentials'])) {
-      $config['credentials'] = new Credentials(variable_get('amazons3_key'), variable_get('amazons3_secret'));
+      $config['credentials'] = new Credentials(static::variable_get('amazons3_key'), static::variable_get('amazons3_secret'));
     }
 
     return \Aws\S3\S3Client::factory($config);
