@@ -149,6 +149,17 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
   }
 
   /**
+   * Test setting a scheme-only URI.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::setUri
+   */
+  public function testSetSchemeUri() {
+    $wrapper = new StreamWrapper();
+    $wrapper->setUri('s3://');
+    $this->assertEquals('s3://bucket.example.com', $wrapper->getUri());
+  }
+
+  /**
    * Test that we throw an exception if a URI is not set.
    *
    * @expectedException \LogicException
