@@ -114,8 +114,9 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * Note that all stream wrapper instances share a global client.
    *
    * @param \Aws\S3\S3Client $client
+   *   The client to use. Set to NULL to remove an existing client.
    */
-  public static function setClient(AwsS3Client $client) {
+  public static function setClient(AwsS3Client $client = NULL) {
     self::$client = $client;
   }
 
