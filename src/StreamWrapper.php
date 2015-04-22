@@ -339,8 +339,6 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   /**
    * Return the local filesystem path.
    *
-   * @todo Test this.
-   *
    * @return string
    *   The local path.
    */

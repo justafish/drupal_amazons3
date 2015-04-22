@@ -203,6 +203,16 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
   }
 
   /**
+   * Test getting the default mime type.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::getMimeType
+   */
+  public function testGetMimeTypeDefault() {
+    $mimeType = StreamWrapper::getMimeType('s3://bucket.example.com/image');
+    $this->assertEquals('application/octet-stream', $mimeType);
+  }
+
+  /**
    * Test that a null dirname returns the bucket associated with the wrapper.
    *
    * @covers \Drupal\amazons3\StreamWrapper::dirname
