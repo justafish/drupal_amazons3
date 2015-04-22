@@ -84,7 +84,7 @@ function amazons3_image_deliver() {
   $path = $args;
   $key = implode('/', $path);
 
-  $source = S3Url::fromKey($bucket, $key);
+  $source = new S3Url($bucket, $key);
   $destination = $source->getImageStyleUrl($style_name);
 
   // Check that the image style token is valid.

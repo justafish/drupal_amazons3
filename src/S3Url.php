@@ -130,21 +130,4 @@ class S3Url extends Url {
 
     return new static($parts['host'], substr($parts['path'], 1));
   }
-
-  /**
-   * Generate a URL from a bucket and key.
-   *
-   * @param string $bucket
-   *   The bucket the key is in.
-   * @param string $key
-   *   The key of the object.
-   *
-   * @return \Drupal\amazons3\S3Url
-   *   A S3Url object.
-   */
-  public static function fromKey($bucket, $key) {
-    $url = new S3Url($bucket);
-    $url->setPath('/' . $key);
-    return $url;
-  }
 }
