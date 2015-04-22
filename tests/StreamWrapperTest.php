@@ -46,6 +46,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
       'caching' => FALSE,
       'expiration' => 0,
     ]);
+    StreamWrapper::setDefaultConfig($config);
     StreamWrapper::setClient(
       S3Client::factory([
       'credentials' => new Credentials('placeholder', 'placeholder'),
@@ -140,6 +141,19 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     StreamWrapper::setClient($client);
 
     $this->assertEquals($client, StreamWrapper::getClient());
+  }
+
+  /**
+   * Test setting a URI.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::setUri
+   * @covers \Drupal\amazons3\StreamWrapper::getUri
+   */
+  public function testSetUri() {
+    $wrapper = new StreamWrapper();
+    $uri = 's3://bucket.example.com/key';
+    $wrapper->setUri($uri);
+    $this->assertEquals($uri, $wrapper->getUri());
   }
 
   /**
