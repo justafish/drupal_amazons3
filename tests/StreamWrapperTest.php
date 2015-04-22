@@ -274,12 +274,24 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
 
   /**
    * Test when an image doesn't exist that we return the internal style URL.
+   *
    * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
    */
   public function testExternalImageStyleUri() {
     $wrapper = new StreamWrapper();
     $wrapper->setUri('s3://bucket.example.com/styles/thumbnail/image.jpg');
     $this->assertEquals('http://amazons3.example.com/' . StreamWrapper::stylesCallback . '/bucket.example.com/styles/thumbnail/image.jpg', $wrapper->getExternalUrl());
+  }
+
+  /**
+   * Test regular URL generation.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   */
+  public function testExternalUri() {
+    $wrapper = new StreamWrapper();
+    $wrapper->setUri('s3://bucket.example.com/image.jpg');
+    $this->assertEquals('https://s3.amazonaws.com/bucket.example.com/image.jpg', $wrapper->getExternalUrl());
   }
 
   /**
