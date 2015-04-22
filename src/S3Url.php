@@ -18,9 +18,15 @@ class S3Url extends Url {
    *
    * @param string $bucket
    *   The bucket to use for the URL.
+   * @param string $key
+   *   (optional) Key for the URL.
    */
-  public function __construct($bucket, $path = null) {
-    parent::__construct('s3', $bucket, null, null, null, $path);
+  public function __construct($bucket, $key = null) {
+    if ($key) {
+      $key = '/' . $key;
+    }
+
+    parent::__construct('s3', $bucket, null, null, null, $key);
   }
 
 
@@ -122,7 +128,7 @@ class S3Url extends Url {
 
     $parts += $defaults;
 
-    return new static($parts['host'], $parts['path']);
+    return new static($parts['host'], substr($parts['path'], 1));
   }
 
   /**
