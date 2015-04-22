@@ -145,6 +145,8 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    *   returns TRUE if lock was successful
    *
    * @link http://php.net/manual/en/streamwrapper.stream-lock.php
+   *
+   * @codeCoverageIgnore
    */
   public function stream_lock($operation) {
     return FALSE;
@@ -272,6 +274,8 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
 
   /**
    * {@inheritdoc}
+   *
+   * @codeCoverageIgnore
    */
   public function chmod($mode) {
     // TODO: Implement chmod() method.
@@ -281,6 +285,8 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   /**
    * @return bool
    *   FALSE, as this stream wrapper does not support realpath().
+   *
+   * @codeCoverageIgnore
    */
   public function realpath() {
     return FALSE;
