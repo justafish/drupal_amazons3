@@ -241,6 +241,7 @@ class StreamWrapperConfiguration extends Collection {
    */
   public function disableCaching() {
     $this->data['caching'] = FALSE;
+    $this->data['expiration'] = NULL;
   }
 
   /**
