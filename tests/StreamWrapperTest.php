@@ -182,6 +182,16 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
   }
 
   /**
+   * Test getting a mime type.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::getMimeType
+   */
+  public function testGetMimeType() {
+    $mimeType = StreamWrapper::getMimeType('s3://bucket.example.com/image.jpg');
+    $this->assertEquals('image/jpeg', $mimeType);
+  }
+
+  /**
    * Test that a null dirname returns the bucket associated with the wrapper.
    *
    * @covers \Drupal\amazons3\StreamWrapper::dirname
