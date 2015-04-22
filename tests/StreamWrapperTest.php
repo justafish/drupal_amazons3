@@ -157,6 +157,17 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
   }
 
   /**
+   * Test that we throw an exception if a URI is not set.
+   *
+   * @expectedException \LogicException
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   */
+  public function testExternalUriNotSet() {
+    $wrapper = new StreamWrapper();
+    $wrapper->getExternalUrl();
+  }
+
+  /**
    * Test that a null dirname returns the bucket associated with the wrapper.
    *
    * @covers \Drupal\amazons3\StreamWrapper::dirname
