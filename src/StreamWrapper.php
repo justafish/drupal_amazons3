@@ -212,10 +212,8 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     // Delivers the first request to an image from the private file system
     // otherwise it returns an external URL to an image that has not been
     // created yet.
-    if ($path_segments[0] === 'styles') {
-      if (!file_exists((string) $this->uri)) {
+    if ($path_segments[0] === 'styles' && !file_exists((string) $this->uri)) {
         return $this->url($this::stylesCallback . '/' . $this->uri->getBucket() . $this->uri->getPath(), array('absolute' => TRUE));
-      }
     }
 
     // Allow other modules to change the download link type.
@@ -292,7 +290,9 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
       if (isset($mapping['extensions'][$extension])) {
         return $mapping['mimetypes'][$mapping['extensions'][$extension]];
       }
+      // @codeCoverageIgnoreStart
     }
+    // @codeCoverageIgnoreEnd
 
     return 'application/octet-stream';
   }
