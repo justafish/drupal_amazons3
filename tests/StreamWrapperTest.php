@@ -59,7 +59,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
       'caching' => FALSE,
     ]);
     StreamWrapper::setDefaultConfig($config);
-    $this->assertEquals($config, StreamWrapper::getDefaultConfig());
+    $this->assertSame($config, StreamWrapper::getDefaultConfig());
 
     if ($oldConfig) {
       StreamWrapper::setDefaultConfig($oldConfig);
@@ -132,7 +132,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
 
     StreamWrapper::setClient($client);
 
-    $this->assertEquals($client, StreamWrapper::getClient());
+    $this->assertSame($client, StreamWrapper::getClient());
   }
 
   /**
