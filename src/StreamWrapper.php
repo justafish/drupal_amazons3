@@ -25,6 +25,13 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   const stylesCallback = 'amazons3/image-derivative';
 
   /**
+   * The name of the S3Client class to use.
+   *
+   * @var string
+   */
+  protected static $s3ClientClass = 'S3Client';
+
+  /**
    * Default configuration used when constructing a new stream wrapper.
    *
    * @var \Drupal\amazons3\StreamWrapperConfiguration
@@ -71,6 +78,15 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   }
 
   /**
+   * Set the name of the S3Client class to use.
+   *
+   * @param string $client
+   */
+  public static function setS3ClientClass($client) {
+    static::$s3ClientClass = $client;
+  }
+
+  /**
    * Construct a new stream wrapper.
    *
    * @param \Drupal\amazons3\StreamWrapperConfiguration $config
@@ -89,7 +105,9 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     $this->config = $config;
 
     if (!$this->getClient()) {
-      $this->setClient(S3Client::factory());
+      /** @var S3Client $name */
+      $name = static::$s3ClientClass;
+      $this->setClient($name::factory());
     }
 
     if ($this->config->isCaching() && !static::$cache) {
