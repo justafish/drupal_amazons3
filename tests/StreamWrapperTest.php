@@ -271,4 +271,14 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     );
     StreamWrapper::register($client);
   }
+
+  /**
+   * Test that the ACL is set to public-read by default.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::getOptions
+   */
+  public function testGetOptions() {
+    $wrapper = new StreamWrapper();
+    $this->assertArraySubset(array('ACL' => 'public-read'), $wrapper->getOptions());
+  }
 }

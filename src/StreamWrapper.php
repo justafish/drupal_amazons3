@@ -370,7 +370,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    *
    * @return array
    */
-  protected function getOptions() {
+  public function getOptions() {
     $options = parent::getOptions();
     $options['ACL'] = 'public-read';
     return $options;
