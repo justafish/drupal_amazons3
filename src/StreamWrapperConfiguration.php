@@ -49,6 +49,9 @@ class StreamWrapperConfiguration extends Collection {
     $required = self::required();
 
     $data = $config + $defaults;
+    if ($data['caching']) {
+      $required[] = 'expiration';
+    }
 
     if ($missing = array_diff($required, array_keys($data))) {
       throw new \InvalidArgumentException('Config is missing the following keys: ' . implode(', ', $missing));

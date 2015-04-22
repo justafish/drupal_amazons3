@@ -44,6 +44,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
       'caching' => FALSE,
+      'expiration' => 0,
     ]);
     StreamWrapper::setClient(
       S3Client::factory([
