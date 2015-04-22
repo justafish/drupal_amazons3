@@ -125,6 +125,24 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
   }
 
   /**
+   * Test setting an S3 client.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::setClient
+   * @covers \Drupal\amazons3\StreamWrapper::getClient
+   */
+  public function testSetClient() {
+    $client = S3Client::factory(
+      [
+        'credentials' => new Credentials('placeholder', 'placeholder'),
+      ]
+    );
+
+    StreamWrapper::setClient($client);
+
+    $this->assertEquals($client, StreamWrapper::getClient());
+  }
+
+  /**
    * Test that a null dirname returns the bucket associated with the wrapper.
    *
    * @covers \Drupal\amazons3\StreamWrapper::dirname
