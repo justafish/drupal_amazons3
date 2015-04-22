@@ -45,8 +45,13 @@ class StreamWrapperConfiguration extends Collection {
    *   The stream wrapper configuration.
    */
   public static function fromConfig(array $config = array(), array $defaults = array(), array $required = array()) {
-    $defaults = self::defaults();
-    $required = self::required();
+    if (empty($defaults)) {
+      $defaults = self::defaults();
+    }
+
+    if (empty($required)) {
+      $required = self::required();
+    }
 
     $data = $config + $defaults;
     if ($data['caching']) {
