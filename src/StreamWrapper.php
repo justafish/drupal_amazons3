@@ -79,7 +79,9 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
         $config = static::$defaultConfig;
       }
       else {
+        // @codeCoverageIgnoreStart
         $config = StreamWrapperConfiguration::fromDrupalVariables();
+        // @codeCoverageIgnoreEnd
       }
     }
 
