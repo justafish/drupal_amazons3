@@ -24,8 +24,6 @@ class S3Client {
   /**
    * Create a new S3Client using aws_key / aws_secret $conf variables.
    *
-   * @todo Needs tests.
-   *
    * @param array|Collection $config
    *   An array of configuration options to pass to \Aws\S3\S3Client::factory().
    *   If 'credentials' are set they will be used instead of aws_key and
@@ -47,8 +45,6 @@ class S3Client {
    * Since bucket names are global across all of S3, we can't determine if a
    * bucket doesn't exist at all, or if it exists but is owned by another S3
    * account.
-   *
-   * @todo Needs tests.
    *
    * @param string $bucket
    *   The name of the bucket to test.
