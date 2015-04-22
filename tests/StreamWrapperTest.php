@@ -256,4 +256,19 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
   public function testDirnameTrailingSlash() {
     $this->assertEquals('s3://bucket.example.com/subdir/second-subdir', $this->wrapper->dirname('s3://bucket.example.com/subdir/second-subdir/'));
   }
+
+  /**
+   * Test that stream registrations are blocked.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::register
+   * @expectedException \LogicException
+   */
+  public function testRegister() {
+    $client = S3Client::factory(
+      [
+        'credentials' => new Credentials('placeholder', 'placeholder'),
+      ]
+    );
+    StreamWrapper::register($client);
+  }
 }
