@@ -2,6 +2,7 @@
 
 namespace Drupal\amazons3;
 
+use Capgemini\Cache\DrupalDoctrineCache;
 use Guzzle\Cache\DoctrineCacheAdapter;
 use \Aws\S3\S3Client as AwsS3Client;
 
@@ -92,7 +93,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     }
 
     if ($this->config->isCaching() && !static::$cache) {
-      $cache = new \Capgemini\Cache\DrupalDoctrineCache();
+      $cache = new DrupalDoctrineCache();
       $cache->setCacheTable('cache_amazons3_metadata');
       static::attachCache(
         new DoctrineCacheAdapter($cache),
