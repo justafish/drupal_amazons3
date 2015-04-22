@@ -77,7 +77,7 @@ class StreamWrapperConfiguration extends Collection {
       'saveAsPaths' => array(),
       'cloudFront' => array(),
       'domain' => NULL,
-      'caching' => TRUE,
+      'caching' => FALSE,
       'cacheLifetime' => NULL,
       'reducedRedundancyPaths' => array(),
     );
