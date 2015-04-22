@@ -281,4 +281,17 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $wrapper = new StreamWrapper();
     $this->assertArraySubset(array('ACL' => 'public-read'), $wrapper->getOptions());
   }
+
+  /**
+   * Test that we can set a different S3 client class.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::setS3ClientClass
+   */
+  public function testSetS3ClientClass() {
+    StreamWrapper::setS3ClientClass('Drupal\amazons3Test\Stub\S3Client');
+    StreamWrapper::setClient(NULL);
+    $wrapper = new StreamWrapper();
+    $credentials = $wrapper->getClient()->getCredentials();
+    $this->assertEquals('placeholder', $credentials->getAccessKeyId());
+  }
 }
