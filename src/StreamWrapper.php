@@ -2,8 +2,8 @@
 
 namespace Drupal\amazons3;
 
-use Aws\S3\S3Client;
 use Guzzle\Cache\DoctrineCacheAdapter;
+use \Aws\S3\S3Client as AwsS3Client;
 
 /**
  * @file
@@ -13,6 +13,13 @@ use Guzzle\Cache\DoctrineCacheAdapter;
  * the s3:// prefix.
  */
 class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrapperInterface {
+
+  /**
+   * The path to the image style generation callback.
+   *
+   * @const string
+   */
+  const stylesCallback = 'amazons3/image-derivative';
 
   /**
    * Default configuration used when constructing a new stream wrapper.
@@ -99,7 +106,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    *
    * @param \Aws\S3\S3Client $client
    */
-  public static function setClient(S3Client $client) {
+  public static function setClient(AwsS3Client $client) {
     self::$client = $client;
   }
 
@@ -134,6 +141,13 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * {@inheritdoc}
    */
   function setUri($uri) {
+    // file_stream_wrapper_get_instance_by_scheme() assumes that all schemes
+    // can work without a directory, but S3 requires a bucket. If a raw scheme
+    // is passed in, we append our default bucket.
+    if ($uri == 's3://') {
+      $uri = 's3://' . $this->config->getBucket();
+    }
+
     $this->uri = S3Url::factory($uri);
   }
 
@@ -152,12 +166,22 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
       throw new \LogicException('A URI must be set before calling getExternalUrl().');
     }
 
-    $local_path = $this->getLocalPath();
+    $path_segments = $this->uri->getPathSegments();
     $args = array(
       'Bucket' => $this->uri->getBucket(),
-      'Key' => $local_path,
+      'Key' => $this->uri->getKey(),
       'Scheme' => 'https',
     );
+
+    // Image styles support
+    // Delivers the first request to an image from the private file system
+    // otherwise it returns an external URL to an image that has not been
+    // created yet.
+    if ($path_segments[0] === 'styles') {
+      if (!file_exists((string) $this->uri)) {
+        return url($this::stylesCallback . '/' . $this->uri->getBucket() . $this->uri->getPath(), array('absolute' => TRUE));
+      }
+    }
 
     // Allow other modules to change the download link type.
     // @todo Rather than passing an info array and a path, we should look into
@@ -253,6 +277,13 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * {@inheritdoc}
    */
   public function dirname($uri = NULL) {
+    // drupal_dirname() doesn't call setUri() before calling. That lead our URI
+    // to be stuck at the default 's3://'' that is set by
+    // file_stream_wrapper_get_instance_by_scheme().
+    if ($uri) {
+      $this->setUri($uri);
+    }
+
     $s3url = S3Url::factory($uri, $this->config);
     $s3url->normalizePath();
     $pathSegments = $s3url->getPathSegments();
@@ -284,7 +315,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    *
    * @param \Aws\S3\S3Client $client
    */
-  public static function register(\Aws\S3\S3Client $client) {
+  public static function register(AwsS3Client $client) {
     throw new \LogicException('Drupal handles registration of stream wrappers. Implement hook_stream_wrappers() instead.');
   }
 

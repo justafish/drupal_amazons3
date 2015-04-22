@@ -14,6 +14,17 @@ use Guzzle\Http\Url;
 class S3Url extends Url {
 
   /**
+   * Override __construct() to default scheme to s3.
+   *
+   * @param string $bucket
+   *   The bucket to use for the URL.
+   */
+  public function __construct($bucket, $path = null) {
+    parent::__construct('s3', $bucket, null, null, null, $path);
+  }
+
+
+  /**
    * Return the bucket associated with the URL.
    *
    * @return string
@@ -53,6 +64,42 @@ class S3Url extends Url {
   }
 
   /**
+   * Set the path part of the URL.
+   *
+   * Since we are using these URLs in a non-HTTP context, we don't replace
+   * spaces or question marks.
+   *
+   * @param array|string $path Path string or array of path segments
+   *
+   * @return Url
+   */
+  public function setPath($path)
+  {
+    if (is_array($path)) {
+      $path = '/' . implode('/', $path);
+    }
+
+    $this->path = $path;
+
+    return $this;
+  }
+
+  /**
+   * Return the image style URL associated with this URL.
+   *
+   * @param string $style_name
+   *   The name of the image style.
+   *
+   * @return \Drupal\amazons3\S3Url
+   *   An image style URL.
+   */
+  public function getImageStyleUrl($style_name) {
+    $styleUrl = new S3Url($this->getBucket());
+    $styleUrl->setPath("/styles/$style_name/" . $this->getKey());
+    return $styleUrl;
+  }
+
+  /**
    * Overrides factory() to support bucket configs.
    *
    * @param string $url
@@ -75,13 +122,23 @@ class S3Url extends Url {
 
     $parts += $defaults;
 
-    // Convert the query string into a QueryString object
-    if ($parts['query'] || 0 !== strlen($parts['query'])) {
-      $parts['query'] = QueryString::fromString($parts['query']);
-    }
+    return new static($parts['host'], $parts['path']);
+  }
 
-    return new static($parts['scheme'], $parts['host'], $parts['user'],
-      $parts['pass'], $parts['port'], $parts['path'], $parts['query'],
-      $parts['fragment']);
+  /**
+   * Generate a URL from a bucket and key.
+   *
+   * @param string $bucket
+   *   The bucket the key is in.
+   * @param string $key
+   *   The key of the object.
+   *
+   * @return \Drupal\amazons3\S3Url
+   *   A S3Url object.
+   */
+  public static function fromKey($bucket, $key) {
+    $url = new S3Url($bucket);
+    $url->setPath('/' . $key);
+    return $url;
   }
 }

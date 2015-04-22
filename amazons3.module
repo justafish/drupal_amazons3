@@ -2,6 +2,7 @@
 
 use Drupal\amazons3\Exception\S3ConnectValidationException;
 use Drupal\amazons3\S3Client;
+use Drupal\amazons3\S3Url;
 
 /**
  * @file
@@ -47,7 +48,145 @@ function amazons3_menu() {
     'file' => 'amazons3.admin.inc',
   );
 
+  $items[\Drupal\amazons3\StreamWrapper::stylesCallback] = array(
+    'title' => 'Image style delivery callback',
+    'description' => 'Callback to generate an image derivative, upload it to S3, and redirect to the S3 URL',
+    'page callback' => 'amazons3_image_deliver',
+    'access arguments' => array('access content'),
+  );
+
   return $items;
+}
+
+/**
+ * Image delivery callback that uploads a derivative to S3.
+ *
+ * @param ...
+ *   The path components of the source image.
+ */
+function amazons3_image_deliver() {
+  $args = func_get_args();
+  $bucket = $args[0];
+
+  // Pop off the bucket and the 'styles' constant in the URL.
+  array_shift($args);
+  array_shift($args);
+
+  $style_name = $args[0];
+
+  // If the image style doesn't exist, we can return early.
+  if (!$style = image_style_load($style_name)) {
+    return MENU_NOT_FOUND;
+  }
+
+  // Pop off the style name; the rest is our key to the original image.
+  array_shift($args);
+  $path = $args;
+  $key = implode('/', $path);
+
+  $source = S3Url::fromKey($bucket, $key);
+  $destination = $source->getImageStyleUrl($style_name);
+
+  // Check that the image style token is valid.
+  if (!variable_get('image_allow_insecure_derivatives', FALSE) || strpos($destination->getKey(), 'styles/') === 0) {
+    $valid = isset($_GET[IMAGE_DERIVATIVE_TOKEN]) && $_GET[IMAGE_DERIVATIVE_TOKEN] === image_style_path_token($style['name'], (string) $source);
+    if (!$valid) {
+      return MENU_ACCESS_DENIED;
+    }
+  }
+
+  if (!file_exists($destination)) {
+    // If there is no source image we can 404 early.
+    if (!file_exists($source)) {
+      return MENU_NOT_FOUND;
+    }
+
+    $lock_name = 'amazons3_image_style_deliver:' . drupal_hash_base64($destination->getKey());
+    $destination_temp = 'temporary://amazons3/' . $destination->getKey();
+
+    // Prevent cache stampedes.
+    if (!lock_acquire($lock_name)) {
+      _amazons3_image_wait_transfer($destination_temp);
+    }
+
+    // Generate the derivative.
+    if (!image_style_create_derivative($style, $source, $destination_temp)) {
+      // Something went horribly wrong, but all we have is a FALSE return. Throw
+      // an exception with something useful.
+      throw new \Exception('Amazon S3 was unable to create an image style derivative. Check the temporary directory configuration and permissions.');
+    }
+    lock_release($lock_name);
+
+    // Register a shutdown function to upload the image to S3.
+    $image = amazons3_image_load($destination_temp);
+    register_shutdown_function(function() use ($image, $destination) {
+      // We have to call both of these to actually flush the image.
+      ob_end_flush();
+      flush();
+      file_unmanaged_copy($image->source, $destination);
+    });
+
+    // Transfer the image to the client from our temporary directory.
+    file_transfer($image->source, array('Content-Type' => $image->info['mime_type'], 'Content-Length' => $image->info['file_size']));
+  }
+
+  // If the file exists on S3, send a permanent redirect.
+  /** @var \Drupal\amazons3\StreamWrapper $wrapper */
+  $wrapper = file_stream_wrapper_get_instance_by_uri($destination);
+  drupal_goto($wrapper->getExternalUrl(), array(), 301);
+}
+
+/**
+ * Wait for an image to appear in a directory, and transfer it when it appears.
+ *
+ * @param string $uri
+ *   The image URI to transfer.
+ *
+ * @return bool
+ *   FALSE if the image was not transferred.
+ */
+function _amazons3_image_wait_transfer($uri) {
+  // Another process is trying to create the file on S3. S3 uploads can
+  // still be slow, so we wait for the temporary file to exist and serve
+  // that.
+  $tries = 0;
+  while ($tries < 4 && !file_exists($uri)) {
+    usleep(500000);
+    $tries++;
+  }
+
+  // If the file doesn't exist, it either means we had a stale lock, or the
+  // other process died and couldn't create the image style. In that case,
+  // we fall through and try to create the derivative without acquiring the
+  // lock.
+  if (file_exists($uri)) {
+    $image = amazons3_image_load($uri);
+    file_transfer($uri, array('Content-Type' => $image->info['mime_type'], 'Content-Length' => $image->info['file_size']));
+  }
+
+  return FALSE;
+}
+
+/**
+ * Load an image, exiting if it could not be loaded.
+ *
+ * @param string $uri
+ *   The image URI to load.
+ *
+ * @return \stdClass
+ *   The loaded image.
+ */
+function amazons3_image_load($uri) {
+  $image = image_load($uri);
+  if (!$image) {
+    watchdog('amazons3', 'Unable to generate the derived image located at %path.', array('%path' => $uri));
+    drupal_add_http_header('Status', '500 Internal Server Error');
+    drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
+    print t('Error generating image.');
+    drupal_exit();
+  }
+
+  return $image;
 }
 
 /**
@@ -80,6 +219,22 @@ function amazons3_field_info_alter(&$info) {
       $info[$type]['settings']['amazons3_bucket'] = variable_get('amazons3_bucket', '');
     }
   }
+}
+
+/**
+ * Implements hook_image_style_path_alter().
+ *
+ * When we are using S3, we need to rewrite image style URLs to route through
+ * our own paths.
+ */
+function amazons3_image_style_path_alter(&$result, $style_name, $uri) {
+  $scheme = file_uri_scheme($uri);
+  if ($scheme != 's3') {
+    return;
+  }
+
+  $s3url = S3Url::factory($uri);
+  $result = $s3url->getImageStyleUrl($style_name);
 }
 
 /**
