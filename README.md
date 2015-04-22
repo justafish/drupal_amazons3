@@ -39,3 +39,16 @@ You can modify the generated URL and it's properties, this is very useful for se
 You can also alter the metadata for each object saved to S3 with hook_amazons3_save_headers(). This is very useful for forcing the content-disposition header to force download files if they're being delivered through CloudFront presigned URLs.
 
 See amazons3.api.php
+
+## Running PHPUnit tests
+
+The included unit tests do not have any dependency on a Drupal installation. By
+using PHPUnit, you can integrate test results into your IDE of choice.
+
+* Run `composer install` in the module directory.
+* Run `vendor/bin/phpunit tests`.
+
+In PHPStorm, it's easiest to configure PHPUnit to use the autoloader generated
+in vendor/autoload.php. It's also good to mark the vendor directory as
+excluded, if you already have a vendor directory indexed from composer_manager.
+

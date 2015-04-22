@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- This assumes the amazons3 module is in sites/all/modules and Composer
-     Manager is using sites/all/vendor. -->
-<phpunit bootstrap="../../vendor/autoload.php">
+<phpunit bootstrap="vendor/autoload.php" checkForUnintentionallyCoveredCode="false">
 
     <testsuites>
         <testsuite name="Amazon S3 Test Suite">
@@ -11,7 +9,7 @@
 
     <filter>
         <blacklist>
-            <directory>../../vendor</directory>
+            <directory>./vendor</directory>
         </blacklist>
     </filter>
 
