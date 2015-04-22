@@ -74,6 +74,37 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
   }
 
   /**
+   * Test that our default configuration is respected.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::__construct
+   */
+  public function testConstructDefaultConfig() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'defaultconfig.example.com',
+      'caching' => FALSE,
+    ]);
+    StreamWrapper::setDefaultConfig($config);
+    $wrapper = new StreamWrapper();
+    $wrapper->setUri('s3://');
+    $this->assertEquals('s3://defaultconfig.example.com', $wrapper->getUri());
+  }
+
+  /**
+   * Test that when needed the StreamWrapper will create a client.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::__construct
+   */
+  public function testCreateClient() {
+    StreamWrapper::setClient(null);
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+    ]);
+    $wrapper = new StreamWrapper($config);
+    $this->assertNotNull($wrapper->getClient());
+  }
+
+  /**
    * Test that a null dirname returns the bucket associated with the wrapper.
    *
    * @covers \Drupal\amazons3\StreamWrapper::dirname
