@@ -341,16 +341,8 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    *
    * @return string
    *   The local path.
-   *
-   * @codeCoverageIgnore
-   *   This method is tested via getExternalUrl(), but phpunit's covers
-   *   annotation won't detect this method.
    */
   protected function getLocalPath() {
-    if (!isset($this->uri)) {
-      throw new \LogicException('A URI must be set before calling getLocalPath().');
-    }
-
     $path = $this->uri->getPath();
     $path = trim($path, '/');
     return $path;

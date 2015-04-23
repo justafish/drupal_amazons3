@@ -185,6 +185,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
    * Test regular URL generation.
    *
    * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   * @covers \Drupal\amazons3\StreamWrapper::getLocalPath
    */
   public function testExternalUri() {
     $wrapper = new StreamWrapper();
