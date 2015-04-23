@@ -55,6 +55,7 @@ class S3ClientTest extends GuzzleTestCase {
                 ),
             ),
         ),
+      'credentials' => array('key' => 'placeholder', 'secret' => 'placeholder'),
     );
     $aws = \Aws\Common\Aws::factory($config);
 
