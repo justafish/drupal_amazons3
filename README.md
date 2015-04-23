@@ -1,6 +1,6 @@
 # AmazonS3
 
-[![Build Status](https://travis-ci.org/justafish/drupal_amazons3.svg?branch=7.x-2.x)](https://travis-ci.org/justafish/drupal_amazons3)
+[![Build Status](https://travis-ci.org/justafish/drupal_amazons3.svg?branch=7.x-2.x)](https://travis-ci.org/justafish/drupal_amazons3) [![Coverage Status](https://coveralls.io/repos/justafish/drupal_amazons3/badge.svg?branch=7.x-2.x)](https://coveralls.io/r/justafish/drupal_amazons3?branch=7.x-2.x)
 
 The AmazonS3 module allows the local file system to be replaced with S3. Uploads are saved into the Drupal file table using D7's file/stream wrapper system.
 
