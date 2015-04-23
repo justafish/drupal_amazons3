@@ -5,5 +5,9 @@ php:
   - 5.6
   - hhvm
   - nightly
+
 install:
-  - composer install
+  - composer install --no-interaction
+
+after_script:
+  - php vendor/bin/coveralls
