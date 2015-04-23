@@ -48,7 +48,10 @@ function amazons3_menu() {
     'file' => 'amazons3.admin.inc',
   );
 
-  $items[\Drupal\amazons3\StreamWrapper::stylesCallback] = array(
+  // hook_menu is called after this module is enabled, but before Composer
+  // dependencies are enabled. This menu callback string should always match
+  // \Drupal\amazons3\StreamWrapper::stylesCallback.
+  $items['amazons3/image-derivative'] = array(
     'title' => 'Image style delivery callback',
     'description' => 'Callback to generate an image derivative, upload it to S3, and redirect to the S3 URL',
     'page callback' => 'amazons3_image_deliver',

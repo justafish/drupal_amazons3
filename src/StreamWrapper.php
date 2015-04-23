@@ -20,6 +20,8 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   /**
    * The path to the image style generation callback.
    *
+   * If this is changed, be sure to update amazons3_menu() as well.
+   *
    * @const string
    */
   const stylesCallback = 'amazons3/image-derivative';
