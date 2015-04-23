@@ -1,5 +1,7 @@
 # AmazonS3
 
+[![Build Status](https://travis-ci.org/justafish/drupal_amazons3.svg?branch=7.x-2.x)](https://travis-ci.org/justafish/drupal_amazons3)
+
 The AmazonS3 module allows the local file system to be replaced with S3. Uploads are saved into the Drupal file table using D7's file/stream wrapper system.
 
 You can also use it with other [S3 compatible cloud storage services](http://en.wikipedia.org/wiki/Amazon_S3#S3_API_and_competing_services) such as [Google Cloud Storage](https://cloud.google.com/storage).
@@ -51,4 +53,3 @@ using PHPUnit, you can integrate test results into your IDE of choice.
 In PHPStorm, it's easiest to configure PHPUnit to use the autoloader generated
 in vendor/autoload.php. It's also good to mark the vendor directory as
 excluded, if you already have a vendor directory indexed from composer_manager.
-
