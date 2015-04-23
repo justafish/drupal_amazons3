@@ -18,9 +18,15 @@ class S3Url extends Url {
    *
    * @param string $bucket
    *   The bucket to use for the URL.
+   * @param string $key
+   *   (optional) Key for the URL.
    */
-  public function __construct($bucket, $path = null) {
-    parent::__construct('s3', $bucket, null, null, null, $path);
+  public function __construct($bucket, $key = null) {
+    if ($key) {
+      $key = '/' . $key;
+    }
+
+    parent::__construct('s3', $bucket, null, null, null, $key);
   }
 
 
@@ -87,15 +93,15 @@ class S3Url extends Url {
   /**
    * Return the image style URL associated with this URL.
    *
-   * @param string $style_name
+   * @param string $styleName
    *   The name of the image style.
    *
    * @return \Drupal\amazons3\S3Url
    *   An image style URL.
    */
-  public function getImageStyleUrl($style_name) {
+  public function getImageStyleUrl($styleName) {
     $styleUrl = new S3Url($this->getBucket());
-    $styleUrl->setPath("/styles/$style_name/" . $this->getKey());
+    $styleUrl->setPath("/styles/$styleName/" . $this->getKey());
     return $styleUrl;
   }
 
@@ -122,23 +128,6 @@ class S3Url extends Url {
 
     $parts += $defaults;
 
-    return new static($parts['host'], $parts['path']);
-  }
-
-  /**
-   * Generate a URL from a bucket and key.
-   *
-   * @param string $bucket
-   *   The bucket the key is in.
-   * @param string $key
-   *   The key of the object.
-   *
-   * @return \Drupal\amazons3\S3Url
-   *   A S3Url object.
-   */
-  public static function fromKey($bucket, $key) {
-    $url = new S3Url($bucket);
-    $url->setPath('/' . $key);
-    return $url;
+    return new static($parts['host'], substr($parts['path'], 1));
   }
 }

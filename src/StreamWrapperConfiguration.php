@@ -45,10 +45,18 @@ class StreamWrapperConfiguration extends Collection {
    *   The stream wrapper configuration.
    */
   public static function fromConfig(array $config = array(), array $defaults = array(), array $required = array()) {
-    $defaults = self::defaults();
-    $required = self::required();
+    if (empty($defaults)) {
+      $defaults = self::defaults();
+    }
+
+    if (empty($required)) {
+      $required = self::required();
+    }
 
     $data = $config + $defaults;
+    if ($data['caching']) {
+      $required[] = 'expiration';
+    }
 
     if ($missing = array_diff($required, array_keys($data))) {
       throw new \InvalidArgumentException('Config is missing the following keys: ' . implode(', ', $missing));
@@ -69,7 +77,7 @@ class StreamWrapperConfiguration extends Collection {
       'saveAsPaths' => array(),
       'cloudFront' => array(),
       'domain' => NULL,
-      'caching' => TRUE,
+      'caching' => FALSE,
       'cacheLifetime' => NULL,
       'reducedRedundancyPaths' => array(),
     );
@@ -233,6 +241,7 @@ class StreamWrapperConfiguration extends Collection {
    */
   public function disableCaching() {
     $this->data['caching'] = FALSE;
+    $this->data['expiration'] = NULL;
   }
 
   /**
@@ -277,6 +286,8 @@ class StreamWrapperConfiguration extends Collection {
    * Set the stream wrapper configuration using Drupal variables.
    *
    * @return StreamWrapperConfiguration
+   *
+   * @codeCoverageIgnore
    */
   public static function fromDrupalVariables() {
     $config = new static();

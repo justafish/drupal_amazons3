@@ -20,7 +20,15 @@
         "phpunit/phpunit": "~4.6"
     },
     "autoload": {
-        "psr-4": {"Drupal\\amazons3\\": "src/"}
+        "psr-4": {
+            "Drupal\\amazons3\\": "src/"
+        }
+    },
+    "autoload-dev": {
+      "psr-4": {
+        "Drupal\\amazons3Test\\": "tests/"
+      },
+      "classmap": ["tests/include"]
     },
     "repositories": [
         {

@@ -2,6 +2,7 @@
 
 namespace Drupal\amazons3;
 
+use Capgemini\Cache\DrupalDoctrineCache;
 use Guzzle\Cache\DoctrineCacheAdapter;
 use \Aws\S3\S3Client as AwsS3Client;
 
@@ -13,6 +14,8 @@ use \Aws\S3\S3Client as AwsS3Client;
  * the s3:// prefix.
  */
 class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrapperInterface {
+  use DrupalAdapter\Common;
+  use DrupalAdapter\FileMimetypes;
 
   /**
    * The path to the image style generation callback.
@@ -20,6 +23,13 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * @const string
    */
   const stylesCallback = 'amazons3/image-derivative';
+
+  /**
+   * The name of the S3Client class to use.
+   *
+   * @var string
+   */
+  protected static $s3ClientClass = 'S3Client';
 
   /**
    * Default configuration used when constructing a new stream wrapper.
@@ -59,6 +69,24 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   }
 
   /**
+   * Return the default configuration.
+   *
+   * @return \Drupal\amazons3\StreamWrapperConfiguration
+   */
+  public static function getDefaultConfig() {
+    return static::$defaultConfig;
+  }
+
+  /**
+   * Set the name of the S3Client class to use.
+   *
+   * @param string $client
+   */
+  public static function setS3ClientClass($client) {
+    static::$s3ClientClass = $client;
+  }
+
+  /**
    * Construct a new stream wrapper.
    *
    * @param \Drupal\amazons3\StreamWrapperConfiguration $config
@@ -70,18 +98,22 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
         $config = static::$defaultConfig;
       }
       else {
+        // @codeCoverageIgnoreStart
         $config = StreamWrapperConfiguration::fromDrupalVariables();
+        // @codeCoverageIgnoreEnd
       }
     }
 
     $this->config = $config;
 
     if (!$this->getClient()) {
-      $this->setClient(S3Client::factory());
+      /** @var S3Client $name */
+      $name = static::$s3ClientClass;
+      $this->setClient($name::factory());
     }
 
     if ($this->config->isCaching() && !static::$cache) {
-      $cache = new \Capgemini\Cache\DrupalDoctrineCache();
+      $cache = new DrupalDoctrineCache();
       $cache->setCacheTable('cache_amazons3_metadata');
       static::attachCache(
         new DoctrineCacheAdapter($cache),
@@ -105,8 +137,9 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * Note that all stream wrapper instances share a global client.
    *
    * @param \Aws\S3\S3Client $client
+   *   The client to use. Set to NULL to remove an existing client.
    */
-  public static function setClient(AwsS3Client $client) {
+  public static function setClient(AwsS3Client $client = NULL) {
     self::$client = $client;
   }
 
@@ -132,6 +165,8 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    *   returns TRUE if lock was successful
    *
    * @link http://php.net/manual/en/streamwrapper.stream-lock.php
+   *
+   * @codeCoverageIgnore
    */
   public function stream_lock($operation) {
     return FALSE;
@@ -177,10 +212,8 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     // Delivers the first request to an image from the private file system
     // otherwise it returns an external URL to an image that has not been
     // created yet.
-    if ($path_segments[0] === 'styles') {
-      if (!file_exists((string) $this->uri)) {
-        return url($this::stylesCallback . '/' . $this->uri->getBucket() . $this->uri->getPath(), array('absolute' => TRUE));
-      }
+    if ($path_segments[0] === 'styles' && !file_exists((string) $this->uri)) {
+        return $this->url($this::stylesCallback . '/' . $this->uri->getBucket() . $this->uri->getPath(), array('absolute' => TRUE));
     }
 
     // Allow other modules to change the download link type.
@@ -215,12 +248,14 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
 
     // Save as.
     // @todo Object constructor.
+    /**
     foreach ($this->config->getSaveAsPaths() as $path) {
       if ($path === '*' || preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
         $args['ResponseContentDisposition'] = 'attachment; filename=' . basename($local_path);
         break;
       }
     }
+    */
 
     // Generate a standard URL.
     $url = static::$client->getObjectUrl($this->uri->getBucket(), $this->getLocalPath());
@@ -233,8 +268,11 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    */
   public static function getMimeType($uri, $mapping = NULL) {
     // Load the default file map.
-    include_once DRUPAL_ROOT . '/includes/file.mimetypes.inc';
-    $mapping = file_mimetype_mapping();
+    // @codeCoverageIgnoreStart
+    if (!$mapping) {
+      $mapping = static::file_mimetype_mapping();
+    }
+    // @codeCoverageIgnoreEnd
 
     $extension = '';
     $file_parts = explode('.', basename($uri));
@@ -252,13 +290,17 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
       if (isset($mapping['extensions'][$extension])) {
         return $mapping['mimetypes'][$mapping['extensions'][$extension]];
       }
+      // @codeCoverageIgnoreStart
     }
+    // @codeCoverageIgnoreEnd
 
     return 'application/octet-stream';
   }
 
   /**
    * {@inheritdoc}
+   *
+   * @codeCoverageIgnore
    */
   public function chmod($mode) {
     // TODO: Implement chmod() method.
@@ -268,6 +310,8 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   /**
    * @return bool
    *   FALSE, as this stream wrapper does not support realpath().
+   *
+   * @codeCoverageIgnore
    */
   public function realpath() {
     return FALSE;
@@ -295,16 +339,10 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   /**
    * Return the local filesystem path.
    *
-   * @todo Test this.
-   *
    * @return string
    *   The local path.
    */
   protected function getLocalPath() {
-    if (!isset($this->uri)) {
-      throw new \LogicException('A URI must be set before calling getLocalPath().');
-    }
-
     $path = $this->uri->getPath();
     $path = trim($path, '/');
     return $path;
@@ -324,7 +362,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    *
    * @return array
    */
-  protected function getOptions() {
+  public function getOptions() {
     $options = parent::getOptions();
     $options['ACL'] = 'public-read';
     return $options;

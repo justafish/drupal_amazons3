@@ -19,11 +19,10 @@ use Guzzle\Common\Collection;
  * @package Drupal\amazons3
  */
 class S3Client {
+  use DrupalAdapter\Bootstrap;
 
   /**
    * Create a new S3Client using aws_key / aws_secret $conf variables.
-   *
-   * @todo Needs tests.
    *
    * @param array|Collection $config
    *   An array of configuration options to pass to \Aws\S3\S3Client::factory().
@@ -34,7 +33,7 @@ class S3Client {
    */
   public static function factory($config = array()) {
     if (!isset($config['credentials'])) {
-      $config['credentials'] = new Credentials(variable_get('amazons3_key'), variable_get('amazons3_secret'));
+      $config['credentials'] = new Credentials(static::variable_get('amazons3_key'), static::variable_get('amazons3_secret'));
     }
 
     return \Aws\S3\S3Client::factory($config);
@@ -46,8 +45,6 @@ class S3Client {
    * Since bucket names are global across all of S3, we can't determine if a
    * bucket doesn't exist at all, or if it exists but is owned by another S3
    * account.
-   *
-   * @todo Needs tests.
    *
    * @param string $bucket
    *   The name of the bucket to test.
