@@ -186,6 +186,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
    *
    * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
    * @covers \Drupal\amazons3\StreamWrapper::getLocalPath
+   * @covers \Drupal\amazons3\StreamWrapper::forceDownload
    */
   public function testExternalUri() {
     $wrapper = new StreamWrapper();
@@ -296,6 +297,37 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $this->assertEquals('placeholder', $credentials->getAccessKeyId());
   }
 
+  /**
+   * @covers \Drupal\amazons3\StreamWrapper::getBasename
+   */
+  public function testBasename() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+      'expiration' => 0,
+      'saveAsPaths' => array('force-download/*')
+    ]);
+    $wrapper = new StreamWrapper($config);
+    $wrapper->setUri('s3://bucket.example.com/force-download/test.jpg');
+    $this->assertEquals('test.jpg', $wrapper->getBasename());
+  }
+
+  /**
+   * Test that we throw an exception if a URI is not set.
+   *
+   * @expectedException \LogicException
+   * @covers \Drupal\amazons3\StreamWrapper::getBasename
+   */
+  public function testBasenameUriNotSet() {
+    $wrapper = new StreamWrapper();
+    $wrapper->getBasename();
+  }
+
+  /**
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   * @covers \Drupal\amazons3\StreamWrapper::getContentDispositionAttachment
+   * @covers \Drupal\amazons3\StreamWrapper::forceDownload
+   */
   public function testSaveAs() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
@@ -308,6 +340,9 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $this->assertStringEndsWith('?response-content-disposition=attachment%3B%20filename%3Dtest.jpg', $wrapper->getExternalUrl());
   }
 
+  /**
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   */
   public function testSaveAsExcluded() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
@@ -321,6 +356,11 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $this->assertEquals('https://s3.amazonaws.com/bucket.example.com/test.jpg', $wrapper->getExternalUrl());
   }
 
+  /**
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   * @covers \Drupal\amazons3\StreamWrapper::getContentDispositionAttachment
+   * @covers \Drupal\amazons3\StreamWrapper::forceDownload
+   */
   public function testSaveAsAll() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',

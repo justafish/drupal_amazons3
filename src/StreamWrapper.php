@@ -368,7 +368,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    */
   public function getBasename() {
     if (!isset($this->uri)) {
-      throw new \LogicException('A URI must be set before calling getExternalUrl().');
+      throw new \LogicException('A URI must be set before calling getBasename().');
     }
 
     return basename($this->getLocalPath());
