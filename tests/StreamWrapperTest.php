@@ -295,4 +295,42 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $credentials = $wrapper->getClient()->getCredentials();
     $this->assertEquals('placeholder', $credentials->getAccessKeyId());
   }
+
+  public function testSaveAs() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+      'expiration' => 0,
+      'saveAsPaths' => array('force-download/*')
+    ]);
+    $wrapper = new StreamWrapper($config);
+    $wrapper->setUri('s3://bucket.example.com/force-download/test.jpg');
+    $this->assertStringEndsWith('?response-content-disposition=attachment%3B%20filename%3Dtest.jpg', $wrapper->getExternalUrl());
+  }
+
+  public function testSaveAsExcluded() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+      'expiration' => 0,
+      'saveAsPaths' => array('force-download/*')
+    ]);
+    $wrapper = new StreamWrapper($config);
+
+    $wrapper->setUri('s3://bucket.example.com/test.jpg');
+    $this->assertEquals('https://s3.amazonaws.com/bucket.example.com/test.jpg', $wrapper->getExternalUrl());
+  }
+
+  public function testSaveAsAll() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+      'expiration' => 0,
+      'saveAsPaths' => array('*')
+    ]);
+    $wrapper = new StreamWrapper($config);
+
+    $wrapper->setUri('s3://bucket.example.com/test.jpg');
+    $this->assertStringEndsWith('?response-content-disposition=attachment%3B%20filename%3Dtest.jpg', $wrapper->getExternalUrl());
+  }
 }

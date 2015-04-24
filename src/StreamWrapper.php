@@ -204,11 +204,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     }
 
     $path_segments = $this->uri->getPathSegments();
-    $args = array(
-      'Bucket' => $this->uri->getBucket(),
-      'Key' => $this->uri->getKey(),
-      'Scheme' => 'https',
-    );
+    $args = array();
 
     // Image styles support
     // Delivers the first request to an image from the private file system
@@ -249,18 +245,12 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     }**/
 
     // Save as.
-    // @todo Object constructor.
-    /**
-    foreach ($this->config->getSaveAsPaths() as $path) {
-      if ($path === '*' || preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
-        $args['ResponseContentDisposition'] = 'attachment; filename=' . basename($local_path);
-        break;
-      }
+    if ($this->forceDownload()) {
+      $args['ResponseContentDisposition'] = $this->getContentDispositionAttachment();
     }
-    */
 
     // Generate a standard URL.
-    $url = static::$client->getObjectUrl($this->uri->getBucket(), $this->getLocalPath());
+    $url = static::$client->getObjectUrl($this->uri->getBucket(), $this->getLocalPath(), NULL, $args);
 
     return $url;
   }
@@ -368,5 +358,42 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     $options = parent::getOptions();
     $options['ACL'] = 'public-read';
     return $options;
+  }
+
+  /**
+   * Return the basename for this URI.
+   *
+   * @return string
+   *   The basename of the URI.
+   */
+  public function getBasename() {
+    if (!isset($this->uri)) {
+      throw new \LogicException('A URI must be set before calling getExternalUrl().');
+    }
+
+    return basename($this->getLocalPath());
+  }
+
+  /**
+   * @return string
+   */
+  protected function getContentDispositionAttachment() {
+    return 'attachment; filename=' . $this->getBasename();
+  }
+
+  /**
+   * @return bool
+   */
+  protected function forceDownload() {
+    foreach ($this->config->getSaveAsPaths() as $path) {
+      if ($path === '*' || preg_match(
+          '#' . strtr($path, '#', '\#') . '#',
+          $this->getLocalPath()
+        )
+      ) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 }
