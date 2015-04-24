@@ -31,7 +31,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    *
    * @var string
    */
-  protected static $s3ClientClass = 'S3Client';
+  protected static $s3ClientClass = '\Drupal\amazons3\S3Client';
 
   /**
    * Default configuration used when constructing a new stream wrapper.
