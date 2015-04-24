@@ -245,12 +245,14 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     }**/
 
     // Save as.
+    $expiry = NULL;
     if ($this->forceDownload()) {
       $args['ResponseContentDisposition'] = $this->getContentDispositionAttachment();
+      $expiry = time() + 60 * 60 * 24;
     }
 
     // Generate a standard URL.
-    $url = static::$client->getObjectUrl($this->uri->getBucket(), $this->getLocalPath(), NULL, $args);
+    $url = static::$client->getObjectUrl($this->uri->getBucket(), $this->getLocalPath(), $expiry, $args);
 
     return $url;
   }
