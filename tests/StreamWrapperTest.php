@@ -305,7 +305,6 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
       'bucket' => 'bucket.example.com',
       'caching' => FALSE,
       'expiration' => 0,
-      'saveAsPaths' => array('force-download/*')
     ]);
     $wrapper = new StreamWrapper($config);
     $wrapper->setUri('s3://bucket.example.com/force-download/test.jpg');
