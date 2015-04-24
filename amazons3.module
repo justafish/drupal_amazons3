@@ -69,6 +69,10 @@ function amazons3_menu() {
  */
 function amazons3_image_deliver() {
   $args = func_get_args();
+  if (count($args) < 4) {
+    return MENU_NOT_FOUND;
+  }
+
   $bucket = $args[0];
 
   // Pop off the bucket and the 'styles' constant in the URL.
