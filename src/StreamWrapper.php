@@ -375,10 +375,14 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   }
 
   /**
+   * Return a string to use as a Content-Disposition header.
+   *
    * @return string
+   *   The header value.
    */
   protected function getContentDispositionAttachment() {
-    return 'attachment; filename=' . $this->getBasename();
+    // Encode the filename according to RFC2047.
+    return 'attachment; filename="' . mb_encode_mimeheader($this->getBasename()) . '"';
   }
 
   /**

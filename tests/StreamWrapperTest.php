@@ -333,11 +333,11 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
       'bucket' => 'bucket.example.com',
       'caching' => FALSE,
       'expiration' => 0,
-      'saveAsPaths' => array('force-download/*')
+      'saveAsPaths' => array('force-download/.*')
     ]);
     $wrapper = new StreamWrapper($config);
     $wrapper->setUri('s3://bucket.example.com/force-download/test.jpg');
-    $this->assertStringEndsWith('?response-content-disposition=attachment%3B%20filename%3Dtest.jpg', $wrapper->getExternalUrl());
+    $this->assertRegExp('!.*response-content-disposition=attachment%3B%20filename%3D%22test\.jpg.*!', $wrapper->getExternalUrl());
   }
 
   /**
@@ -371,6 +371,25 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $wrapper = new StreamWrapper($config);
 
     $wrapper->setUri('s3://bucket.example.com/test.jpg');
-    $this->assertStringEndsWith('?response-content-disposition=attachment%3B%20filename%3Dtest.jpg', $wrapper->getExternalUrl());
+    $this->assertRegExp('!.*response-content-disposition=attachment%3B%20filename%3D%22test\.jpg.*!', $wrapper->getExternalUrl());
+  }
+
+  /**
+   * Test that we properly encode filenames according to RFC2047.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   * @covers \Drupal\amazons3\StreamWrapper::getContentDispositionAttachment
+   */
+  public function testAttachmentSpace() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+      'expiration' => 0,
+      'saveAsPaths' => array('force-download/.*')
+    ]);
+    $wrapper = new StreamWrapper($config);
+    $wrapper->setUri('s3://bucket.example.com/force-download/test with spaces.jpg');
+    // https://s3.amazonaws.com/bucket.example.com/force-download/test%20with%20spaces.jpg?response-content-disposition=attachment%3B%20filename%3D%22test%20with%20spaces.jpg%22&AWSAccessKeyId=placeholder&Expires=1429987166&Signature=xEZpLFLnNAgIFbRuoP7VRbNUF%2BQ%3D
+    $this->assertRegExp('!.*response-content-disposition=attachment%3B%20filename%3D%22test%20with%20spaces\.jpg.*!', $wrapper->getExternalUrl());
   }
 }
