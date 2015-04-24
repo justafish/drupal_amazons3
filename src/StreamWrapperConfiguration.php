@@ -286,6 +286,7 @@ class StreamWrapperConfiguration extends Collection {
    * Set the stream wrapper configuration using Drupal variables.
    *
    * @return StreamWrapperConfiguration
+   *   A StreamWrapperConfiguration object.
    *
    * @codeCoverageIgnore
    */
@@ -323,20 +324,11 @@ class StreamWrapperConfiguration extends Collection {
     }
 
     // Torrent list.
-    $torrents = explode("\n", variable_get('amazons3_torrents', $defaults['torrentPaths']));
-    $torrents = array_map('trim', $torrents);
-    $torrents = array_filter($torrents, 'strlen');
-    $config->setTorrentPaths($torrents);
+    $config->setTorrentPaths(variable_get('amazons3_torrents', $defaults['torrentPaths']));
 
     // Presigned url-list.
-    // @todo This is going to be totally broken.
-    $presigned_urls = explode(
-      "\n",
-      variable_get('amazons3_presigned_urls', $defaults['presignedPaths'])
-    );
-    $presigned_urls = array_map('trim', $presigned_urls);
-    $presigned_urls = array_filter($presigned_urls, 'strlen');
-    $config->presignedUrls = array();
+    $presigned_urls = variable_get('amazons3_presigned_urls', $defaults['presignedPaths']);
+    /**
     foreach ($presigned_urls as $presigned_url) {
       // Check for an explicit key.
       $matches = array();
@@ -346,19 +338,13 @@ class StreamWrapperConfiguration extends Collection {
       else {
         $config->presignedUrls[$presigned_url] = 60;
       }
-    }
+    }*/
 
     // Force "save as" list.
-    $saveas = explode("\n", variable_get('amazons3_saveas', $defaults['saveAsPaths']));
-    $saveas = array_map('trim', $saveas);
-    $saveas = array_filter($saveas, 'strlen');
-    $config->setSaveAsPaths($saveas);
+    $config->setSaveAsPaths(variable_get('amazons3_saveas', $defaults['saveAsPaths']));
 
     // Reduced Redundancy Storage.
-    $rrs = explode("\n", variable_get('amazons3_rrs', $defaults['reducedRedundancyPaths']));
-    $rrs = array_map('trim', $rrs);
-    $rrs = array_filter($rrs, 'strlen');
-    $config->setReducedRedundancyPaths($rrs);
+    $config->setReducedRedundancyPaths(variable_get('amazons3_rrs', $defaults['reducedRedundancyPaths']));
 
     return $config;
   }

@@ -187,3 +187,25 @@ function amazons3_update_7202() {
 
   db_drop_table('amazons3_file');
 }
+
+/**
+ * Convert all multiline string variables to arrays.
+ */
+function amazons3_update_7203() {
+  $variables = array(
+    'amazons3_presigned_urls',
+    'amazons3_rrs',
+    'amazons3_saveas',
+    'amazons3_torrents',
+  );
+
+  foreach ($variables as $name) {
+    $value = variable_get($name, array());
+    if (is_string($value)) {
+      $value = explode("\n", $value);
+      $value = array_map('trim', $value);
+      $value = array_filter($value, 'strlen');
+      variable_set($name, $value);
+    }
+  }
+}

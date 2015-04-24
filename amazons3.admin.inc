@@ -90,19 +90,11 @@ function amazons3_admin() {
     '#default_value' => variable_get('amazons3_hostname', ''),
   );
 
-  $form['amazons3_https'] = array(
-    '#type' => 'textarea',
-    '#title' => t('Force HTTPS'),
-    '#description' => t('A list of paths that should be delivered through a https url. This is not necessary if the current page being served is already HTTPS. Enter one value per line e.g. "mydir/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>.', array('@preg_match' => 'http://php.net/preg_match')),
-    '#default_value' => variable_get('amazons3_https', ''),
-    '#rows' => 10,
-  );
-
   $form['amazons3_torrents'] = array(
     '#type' => 'textarea',
     '#title' => t('Torrents'),
     '#description' => t('A list of paths that should be delivered through a torrent url. Enter one value per line e.g. "mydir/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>. This won\'t work for CloudFront presigned URLs.', array('@preg_match' => 'http://php.net/preg_match')),
-    '#default_value' => variable_get('amazons3_torrents', ''),
+    '#default_value' => _amazons3_implode('amazons3_torrents'),
     '#rows' => 10,
   );
 
@@ -110,7 +102,7 @@ function amazons3_admin() {
     '#type' => 'textarea',
     '#title' => t('Presigned URLs'),
     '#description' => t('A list of timeouts and paths that should be delivered through a presigned url. Enter one value per line, in the format &lt;timeout&gt;|&lt;path&gt;|&lt;protocol&gt;. e.g. "60|mydir/*" or "60|mydir/*|https". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>.', array('@preg_match' => 'http://php.net/preg_match')),
-    '#default_value' => variable_get('amazons3_presigned_urls', ''),
+    '#default_value' => _amazons3_implode('amazons3_presigned_urls'),
     '#rows' => 10,
   );
 
@@ -118,7 +110,7 @@ function amazons3_admin() {
     '#type' => 'textarea',
     '#title' => t('Force Save As'),
     '#description' => t('A list of paths that force the user to save the file by using Content-disposition header. Prevents autoplay of media. Enter one value per line. e.g. "mydir/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>. Files must use a presigned url to use this, however it won\'t work for CloudFront presigned URLs and you\'ll need to set the content-disposition header in the file metadata before saving.', array('@preg_match' => 'http://php.net/preg_match')),
-    '#default_value' => variable_get('amazons3_saveas', ''),
+    '#default_value' => _amazons3_implode('amazons3_saveas'),
     '#rows' => 10,
   );
 
@@ -126,11 +118,13 @@ function amazons3_admin() {
     '#type' => 'textarea',
     '#title' => t('Reduced Redundancy Storage'),
     '#description' => t('A list of paths that save the file in <a href="@rrs">Reduced Redundancy Storage</a>. Enter one value per line. e.g. "styles/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>.', array('@rrs' => 'http://aws.amazon.com/s3/faqs/#rrs_anchor', '@preg_match' => 'http://php.net/preg_match')),
-    '#default_value' => variable_get('amazons3_rrs', ''),
+    '#default_value' => _amazons3_implode('amazons3_rrs'),
     '#rows' => 10,
   );
 
-  return system_settings_form($form);
+  $form = system_settings_form($form);
+  $form['#submit'] = array_merge(array('_amazons3_explode_list'), $form['#submit']);
+  return $form;
 }
 
 /**
@@ -147,4 +141,42 @@ function amazons3_admin_validate($form, &$form_state) {
       form_set_error('amazons3_cloudfront', t('You must configure your CloudFront credentials in the awksdk module.'));
     }
   }
+}
+
+/**
+ * Explode newlines in our admin form into arrays to save.
+ *
+ * @param array $form
+ *   The form being displayed.
+ * @param array &$form_state
+ *   The current state of the form.
+ */
+function _amazons3_explode_list($form, &$form_state) {
+  $keys = array(
+    'amazons3_presigned_urls',
+    'amazons3_rrs',
+    'amazons3_saveas',
+    'amazons3_torrents',
+  );
+
+  $values = &$form_state['values'];
+
+  foreach ($keys as $form_key) {
+    $values[$form_key] = explode("\n", $values[$form_key]);
+    $values[$form_key] = array_map('trim', $values[$form_key]);
+    $values[$form_key] = array_filter($values[$form_key], 'strlen');
+  }
+}
+
+/**
+ * Load a variable array and implode it into a string.
+ *
+ * @param string $name
+ *   The variable to load.
+ *
+ * @return string
+ *   The imploded string.
+ */
+function _amazons3_implode($name) {
+  return implode("\n", variable_get($name, array()));
 }

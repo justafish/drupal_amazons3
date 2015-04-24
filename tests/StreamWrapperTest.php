@@ -186,6 +186,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
    *
    * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
    * @covers \Drupal\amazons3\StreamWrapper::getLocalPath
+   * @covers \Drupal\amazons3\StreamWrapper::forceDownload
    */
   public function testExternalUri() {
     $wrapper = new StreamWrapper();
@@ -294,5 +295,100 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $wrapper = new StreamWrapper();
     $credentials = $wrapper->getClient()->getCredentials();
     $this->assertEquals('placeholder', $credentials->getAccessKeyId());
+  }
+
+  /**
+   * @covers \Drupal\amazons3\StreamWrapper::getBasename
+   */
+  public function testBasename() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+      'expiration' => 0,
+    ]);
+    $wrapper = new StreamWrapper($config);
+    $wrapper->setUri('s3://bucket.example.com/force-download/test.jpg');
+    $this->assertEquals('test.jpg', $wrapper->getBasename());
+  }
+
+  /**
+   * Test that we throw an exception if a URI is not set.
+   *
+   * @expectedException \LogicException
+   * @covers \Drupal\amazons3\StreamWrapper::getBasename
+   */
+  public function testBasenameUriNotSet() {
+    $wrapper = new StreamWrapper();
+    $wrapper->getBasename();
+  }
+
+  /**
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   * @covers \Drupal\amazons3\StreamWrapper::getContentDispositionAttachment
+   * @covers \Drupal\amazons3\StreamWrapper::forceDownload
+   */
+  public function testSaveAs() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+      'expiration' => 0,
+      'saveAsPaths' => array('force-download/.*')
+    ]);
+    $wrapper = new StreamWrapper($config);
+    $wrapper->setUri('s3://bucket.example.com/force-download/test.jpg');
+    $this->assertRegExp('!.*response-content-disposition=attachment%3B%20filename%3D%22test\.jpg.*!', $wrapper->getExternalUrl());
+  }
+
+  /**
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   */
+  public function testSaveAsExcluded() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+      'expiration' => 0,
+      'saveAsPaths' => array('force-download/*')
+    ]);
+    $wrapper = new StreamWrapper($config);
+
+    $wrapper->setUri('s3://bucket.example.com/test.jpg');
+    $this->assertEquals('https://s3.amazonaws.com/bucket.example.com/test.jpg', $wrapper->getExternalUrl());
+  }
+
+  /**
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   * @covers \Drupal\amazons3\StreamWrapper::getContentDispositionAttachment
+   * @covers \Drupal\amazons3\StreamWrapper::forceDownload
+   */
+  public function testSaveAsAll() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+      'expiration' => 0,
+      'saveAsPaths' => array('*')
+    ]);
+    $wrapper = new StreamWrapper($config);
+
+    $wrapper->setUri('s3://bucket.example.com/test.jpg');
+    $this->assertRegExp('!.*response-content-disposition=attachment%3B%20filename%3D%22test\.jpg.*!', $wrapper->getExternalUrl());
+  }
+
+  /**
+   * Test that we properly encode filenames according to RFC2047.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   * @covers \Drupal\amazons3\StreamWrapper::getContentDispositionAttachment
+   */
+  public function testAttachmentSpace() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+      'expiration' => 0,
+      'saveAsPaths' => array('force-download/.*')
+    ]);
+    $wrapper = new StreamWrapper($config);
+    $wrapper->setUri('s3://bucket.example.com/force-download/test with spaces.jpg');
+    // https://s3.amazonaws.com/bucket.example.com/force-download/test%20with%20spaces.jpg?response-content-disposition=attachment%3B%20filename%3D%22test%20with%20spaces.jpg%22&AWSAccessKeyId=placeholder&Expires=1429987166&Signature=xEZpLFLnNAgIFbRuoP7VRbNUF%2BQ%3D
+    $this->assertRegExp('!.*response-content-disposition=attachment%3B%20filename%3D%22test%20with%20spaces\.jpg.*!', $wrapper->getExternalUrl());
   }
 }

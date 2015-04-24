@@ -56,6 +56,7 @@ function amazons3_menu() {
     'description' => 'Callback to generate an image derivative, upload it to S3, and redirect to the S3 URL',
     'page callback' => 'amazons3_image_deliver',
     'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
   );
 
   return $items;
@@ -69,6 +70,10 @@ function amazons3_menu() {
  */
 function amazons3_image_deliver() {
   $args = func_get_args();
+  if (count($args) < 4) {
+    return MENU_NOT_FOUND;
+  }
+
   $bucket = $args[0];
 
   // Pop off the bucket and the 'styles' constant in the URL.
