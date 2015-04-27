@@ -392,9 +392,10 @@ function amazons3_form_bucket_validate(array &$element, array &$form_state, arra
   }
 
   // Inject our credentials for testing.
-  $config = array(
-    'credentials' => new Credentials($form_state['values']['amazons3_key'], $form_state['values']['amazons3_secret']),
-  );
+  $config = array();
+  if (isset($form_state['values']['amazons3_key']) && isset($form_state['values']['amazons3_secret'])) {
+    $config['credentials'] = new Credentials($form_state['values']['amazons3_key'], $form_state['values']['amazons3_secret']);
+  }
 
   if (!empty($hostname)) {
     $config['endpoint'] = $hostname;
