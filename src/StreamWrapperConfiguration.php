@@ -23,14 +23,6 @@ use Guzzle\Common\Collection;
 class StreamWrapperConfiguration extends Collection {
 
   /**
-   * Construct a new configuration for an S3 stream wrapper.
-   *
-   * @param bool $useVariables
-   *   (optional) Use variables from variable_get() to configure S3. Defaults to
-   *   TRUE. Items set in $data will override Drupal variables.
-   */
-
-  /**
    * Generate a configuration object from an array.
    *
    * @param array $config
