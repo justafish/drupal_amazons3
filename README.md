@@ -12,6 +12,29 @@ You can switch it on as the default file system scheme, or individually for file
 - [Composer Manager](https://www.drupal.org/project/composer_manager)
 - [PHP's cURL extension](https://php.net/manual/en/book.curl.php) (nearly always available by default)
 
+## Patches for full functionality
+
+While Drupal core and contrib have basic support for remote stream wrappers,
+most modules have issues where they hard code URIs or specific file systems.
+All of these patches except for the Imagemagick patch add simple alter hooks,
+so they should be unlikely to cause problems.
+
+### Image styles
+
+- [hook_image_style_path_alter](https://www.drupal.org/node/1358896#comment-9297197)
+  needs to be patched in Drupal's image.module.
+- To use Imagemagick, it must be patched to
+  [support remote stream wrappers](https://www.drupal.org/node/1695068#comment-8953159).
+
+## Media module, file entities, and plupload
+
+- Drupal's <code>file.inc</code> needs to be
+  [patched to add an alter hook](https://www.drupal.org/node/2479523#comment-9873165).
+- Media module needs to be patched
+  [for file uploads to work with an S3 bucket](https://www.drupal.org/node/2479473#comment-9872845).
+- File Entity needs to be patched
+  [to use correct S3 URLs](https://www.drupal.org/node/2479483#comment-9872933).
+
 ## Known Issues
 
 ### Bucket names with "." in them
