@@ -211,7 +211,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     // otherwise it returns an external URL to an image that has not been
     // created yet.
     if ($path_segments[0] === 'styles' && !file_exists((string) $this->uri)) {
-        return $this->url($this::stylesCallback . '/' . $this->uri->getBucket() . $this->uri->getPath(), array('absolute' => TRUE));
+      return $this->url($this::stylesCallback . '/' . $this->uri->getBucket() . $this->uri->getPath(), array('absolute' => TRUE));
     }
 
     // Allow other modules to change the download link type.
@@ -221,16 +221,6 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     // $args = array_merge($args, module_invoke_all('amazons3_url_info', $local_path, $args));
 
     // UI overrides.
-    // Torrent URLs.
-    // @todo Torrents are now getObjectTorrent().
-    /**
-    $torrent = $args['download_type'] === 'torrent' ? TRUE : FALSE;
-    foreach ($this->torrents as $path) {
-      if ($path === '*' || preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
-        $args['download_type'] = 'torrent';
-        break;
-      }
-    }**/
 
     // Presigned URLs.
     // @todo Presigned URLs are now createPresignedUrl
@@ -251,8 +241,14 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
       $expiry = time() + 60 * 60 * 24;
     }
 
+    // Torrent URLs.
+    $path = $this->getLocalPath();
+    if ($this->useTorrent()) {
+      $path .= '?torrent';
+    }
+
     // Generate a standard URL.
-    $url = static::$client->getObjectUrl($this->uri->getBucket(), $this->getLocalPath(), $expiry, $args);
+    $url = static::$client->getObjectUrl($this->uri->getBucket(), $path, $expiry, $args);
 
     return $url;
   }
@@ -388,18 +384,43 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   }
 
   /**
+   * Find if this URI should force a download.
+   *
    * @return bool
+   *   TRUE if the local path of the stream URI should force a download. FALSE
+   *   otherwise.
    */
   protected function forceDownload() {
-    foreach ($this->config->getSaveAsPaths() as $path) {
-      if ($path === '*' || preg_match(
-          '#' . strtr($path, '#', '\#') . '#',
-          $this->getLocalPath()
-        )
-      ) {
+    return $this->matchPathRegex($this->getLocalPath(), $this->config->getSaveAsPaths());
+  }
+
+  /**
+   * Find if a path matches a set of patterns.
+   *
+   * @param string $path
+   *   The path to test against $patterns.
+   * @param array $patterns
+   *   An array of regular expression patterns, without start and end markers.
+   *
+   * @return bool
+   *   TRUE if $path matches at least one pattern, FALSE otherwise.
+   */
+  protected static function matchPathRegex($path, array $patterns) {
+    foreach ($patterns as $pattern) {
+      if ($pattern === '*' || preg_match('#' . strtr($pattern, '#', '\#') . '#', $path)) {
         return TRUE;
       }
     }
     return FALSE;
+  }
+
+  /**
+   * Find if the URI should be returned as a torrent.
+   *
+   * @return bool
+   *   TRUE if a torrent should be served, FALSE otherwise.
+   */
+  protected function useTorrent() {
+    return $this->matchPathRegex($this->getLocalPath(), $this->config->getTorrentPaths());
   }
 }
