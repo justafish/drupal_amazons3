@@ -132,6 +132,13 @@ function amazons3_image_deliver() {
       // We have to call both of these to actually flush the image.
       ob_end_flush();
       flush();
+
+      // file_unmanaged_copy() will not create any nested directories if needed.
+      $directory = drupal_dirname($destination);
+      if (!file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
+        watchdog('amazons3', 'Failed to create style directory: %directory', array('%directory' => $directory), WATCHDOG_ERROR);
+      }
+
       file_unmanaged_copy($image->source, $destination);
     });
 
