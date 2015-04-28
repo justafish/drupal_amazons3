@@ -315,6 +315,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
    * Test that we throw an exception if a URI is not set.
    *
    * @expectedException \LogicException
+   *
    * @covers \Drupal\amazons3\StreamWrapper::getBasename
    */
   public function testBasenameUriNotSet() {
@@ -326,6 +327,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
    * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
    * @covers \Drupal\amazons3\StreamWrapper::getContentDispositionAttachment
    * @covers \Drupal\amazons3\StreamWrapper::forceDownload
+   * @covers \Drupal\amazons3\StreamWrapper::matchPathRegex
    */
   public function testSaveAs() {
     $config = StreamWrapperConfiguration::fromConfig([
@@ -390,5 +392,24 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $wrapper->setUri('s3://bucket.example.com/force-download/test with spaces.jpg');
     // https://s3.amazonaws.com/bucket.example.com/force-download/test%20with%20spaces.jpg?response-content-disposition=attachment%3B%20filename%3D%22test%20with%20spaces.jpg%22&AWSAccessKeyId=placeholder&Expires=1429987166&Signature=xEZpLFLnNAgIFbRuoP7VRbNUF%2BQ%3D
     $this->assertRegExp('!.*response-content-disposition=attachment%3B%20filename%3D%22test%20with%20spaces\.jpg.*!', $wrapper->getExternalUrl());
+  }
+
+  /**
+   * Test that we can create torrent URLs.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   * @covers \Drupal\amazons3\StreamWrapper::useTorrent
+   */
+  public function testTorrentPath() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+      'expiration' => 0,
+      'torrentPaths' => array('torrents/.*')
+    ]);
+
+    $wrapper = new StreamWrapper($config);
+    $wrapper->setUri('s3://bucket.example.com/torrents/test');
+    $this->assertEquals('https://s3.amazonaws.com/bucket.example.com/torrents/test%3Ftorrent', $wrapper->getExternalUrl());
   }
 }
