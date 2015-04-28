@@ -6,6 +6,11 @@ php:
   - hhvm
   - nightly
 
+matrix:
+    allow_failures:
+        - php: hhvm
+        - php: nightly
+
 install:
   - composer install --no-interaction
 
