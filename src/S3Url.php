@@ -109,9 +109,12 @@ class S3Url extends Url {
    * Overrides factory() to support bucket configs.
    *
    * @param string $url
-   *   Full URL used to create a Url object
+   *   Full URL used to create a Url object.
    * @param \Drupal\amazons3\StreamWrapperConfiguration $config
    *   (optional) Configuration to associate with this URL.
+   *
+   * @throws \InvalidArgumentException
+   *   Thrown when $url cannot be parsed by parse_url().
    *
    * @return static
    *   An S3Url.
