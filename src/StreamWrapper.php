@@ -114,9 +114,9 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
       $this->setClient($name::factory());
     }
 
+    // @todo Add a static cache.
     if ($this->config->isCaching() && !static::$cache) {
-      $cache = new DrupalDoctrineCache();
-      $cache->setCacheTable('cache_amazons3_metadata');
+      $cache = new Cache();
       static::attachCache(
         new DoctrineCacheAdapter($cache),
         $this->config->getCacheLifetime()
