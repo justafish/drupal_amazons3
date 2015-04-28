@@ -410,20 +410,15 @@ function amazons3_form_bucket_validate(array &$element, array &$form_state, arra
 
   try {
     $s3 = S3Client::factory($config);
-
-    // Check the bucket name first without a remote HTTP call.
-    if (!$s3->isValidBucketName($bucket)) {
-      form_error($element, t('The S3 bucket name is not valid.'));
-      return;
-    }
-
     S3Client::validateBucketExists($bucket, $s3);
   }
   catch (S3ConnectValidationException $e) {
     form_error($element, t('The S3 access credentials are invalid or the bucket does not exist.'));
+    watchdog_exception('amazons3', $e);
   }
   catch (Exception $e) {
     form_error($element, t('There was a problem connecting to S3. The following exception was thrown: @exception', array('@exception' => $e->getMessage())));
+    watchdog_exception('amazons3', $e);
   }
 }
 
