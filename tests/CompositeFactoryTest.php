@@ -20,6 +20,6 @@ class CompositeFactoryTest extends \PHPUnit_Framework_TestCase {
     $c->factory('null-command');
     $this->assertEquals($c->getCallCount('module_invoke_all:amazons3_command_prepare'), 1);
     $this->assertEquals($c->getCallCount('drupal_alter:amazons3_command_prepare'), 1);
-    $this->assertEquals($c->getCallCount('drupal_alter:amazons3_command_alter'), 1);
+    $this->assertEquals($c->getCallCount('drupal_alter:amazons3_command'), 1);
   }
 }

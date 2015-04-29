@@ -23,7 +23,7 @@ class CompositeFactory extends \Guzzle\Service\Command\Factory\CompositeFactory 
     $this->drupal_alter('amazons3_command_prepare', $name, $args);
 
     $command = parent::factory($name, $args);
-    $this->drupal_alter('amazons3_command_alter', $command);
+    $this->drupal_alter('amazons3_command', $command);
     return $command;
   }
 
