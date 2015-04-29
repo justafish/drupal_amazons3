@@ -45,7 +45,7 @@ class BasicPath implements Matchable {
    */
   public function __construct($pattern) {
     $result = @preg_match('#' . strtr($pattern, '#', '\#') . '#', 'foo');
-    if ($result === FALSE || preg_last_error() != PREG_NO_ERROR) {
+    if ($pattern != '*' && ($result === FALSE || preg_last_error() != PREG_NO_ERROR)) {
       throw new \InvalidArgumentException('BasicPath pattern is not a valid regular expression.');
     }
 

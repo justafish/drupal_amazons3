@@ -40,4 +40,12 @@ class BasicPathTest extends \PHPUnit_Framework_TestCase {
   public function testInvalidPattern() {
     new BasicPath('?');
   }
+
+  /**
+   * @covers Drupal\amazons3\Matchable\BasicPath::__construct
+   */
+  public function testStarPattern() {
+    $path = new BasicPath('*');
+    $this->assertSame($path, $path->match('foo'));
+  }
 }
