@@ -209,3 +209,24 @@ function amazons3_update_7203() {
     }
   }
 }
+
+/**
+ * Convert presigned URLs to structured arrays.
+ */
+function amazons3_update_7204() {
+  $lines = variable_get('amazons3_presigned_urls', array());
+  if (empty($lines)) {
+    return;
+  }
+
+  $config = array();
+  foreach ($lines as $line) {
+    list($timeout, $pattern) = explode("|", $line);
+    $config[] = array(
+      'timeout' => $timeout,
+      'pattern' => $pattern,
+    );
+  }
+
+  variable_set('amazons3_presigned_urls', $config);
+}

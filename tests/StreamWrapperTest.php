@@ -4,6 +4,8 @@ namespace Drupal\amazons3Test;
 
 use Aws\Common\Credentials\Credentials;
 use Aws\S3\S3Client;
+use Drupal\amazons3\Matchable\BasicPath;
+use Drupal\amazons3\Matchable\MatchablePaths;
 use Drupal\amazons3Test\Stub\StreamWrapper;
 use Drupal\amazons3\StreamWrapperConfiguration;
 
@@ -327,14 +329,13 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
    * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
    * @covers \Drupal\amazons3\StreamWrapper::getContentDispositionAttachment
    * @covers \Drupal\amazons3\StreamWrapper::forceDownload
-   * @covers \Drupal\amazons3\StreamWrapper::matchPathRegex
    */
   public function testSaveAs() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
       'caching' => FALSE,
       'expiration' => 0,
-      'saveAsPaths' => array('force-download/.*')
+      'saveAsPaths' => new MatchablePaths(BasicPath::factory(array('force-download/.*'))),
     ]);
     $wrapper = new StreamWrapper($config);
     $wrapper->setUri('s3://bucket.example.com/force-download/test.jpg');
@@ -349,7 +350,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
       'bucket' => 'bucket.example.com',
       'caching' => FALSE,
       'expiration' => 0,
-      'saveAsPaths' => array('force-download/*')
+      'saveAsPaths' => new MatchablePaths(BasicPath::factory(array('force-download/*'))),
     ]);
     $wrapper = new StreamWrapper($config);
 
@@ -367,7 +368,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
       'bucket' => 'bucket.example.com',
       'caching' => FALSE,
       'expiration' => 0,
-      'saveAsPaths' => array('*')
+      'saveAsPaths' => new MatchablePaths(BasicPath::factory(array('*'))),
     ]);
     $wrapper = new StreamWrapper($config);
 
@@ -386,7 +387,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
       'bucket' => 'bucket.example.com',
       'caching' => FALSE,
       'expiration' => 0,
-      'saveAsPaths' => array('force-download/.*')
+      'saveAsPaths' => new MatchablePaths(BasicPath::factory(array('force-download/.*'))),
     ]);
     $wrapper = new StreamWrapper($config);
     $wrapper->setUri('s3://bucket.example.com/force-download/test with spaces.jpg');
@@ -405,7 +406,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
       'bucket' => 'bucket.example.com',
       'caching' => FALSE,
       'expiration' => 0,
-      'torrentPaths' => array('torrents/.*')
+      'torrentPaths' => new MatchablePaths(BasicPath::factory(array('torrents/.*'))),
     ]);
 
     $wrapper = new StreamWrapper($config);

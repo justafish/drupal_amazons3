@@ -166,6 +166,17 @@ function _amazons3_explode_list($form, &$form_state) {
     $values[$form_key] = array_map('trim', $values[$form_key]);
     $values[$form_key] = array_filter($values[$form_key], 'strlen');
   }
+
+  // Presigned URLs are special in that they are pipe-separated lines.
+  $presigned_config = array();
+  foreach ($values['amazons3_presigned_urls'] as $presigned_line) {
+    list($timeout, $pattern) = explode("|", $presigned_line);
+    $presigned_config[] = array(
+      'timeout' => $timeout,
+      'pattern' => $pattern,
+    );
+  }
+  $values['amazons3_presigned_urls'] = $presigned_config;
 }
 
 /**
@@ -178,5 +189,13 @@ function _amazons3_explode_list($form, &$form_state) {
  *   The imploded string.
  */
 function _amazons3_implode($name) {
+  if ($name == 'amazons3_presigned_urls') {
+    $lines = array();
+    foreach (variable_get($name, array()) as $config) {
+      $lines[] = $config['timeout'] . '|' . $config['pattern'];
+    }
+    return implode("\n", $lines);
+  }
+
   return implode("\n", variable_get($name, array()));
 }

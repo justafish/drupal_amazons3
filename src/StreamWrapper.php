@@ -391,36 +391,26 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    *   otherwise.
    */
   protected function forceDownload() {
-    return $this->matchPathRegex($this->getLocalPath(), $this->config->getSaveAsPaths());
+    return $this->config->getSaveAsPaths()->match($this->getLocalPath());
   }
 
   /**
-   * Find if a path matches a set of patterns.
-   *
-   * @param string $path
-   *   The path to test against $patterns.
-   * @param array $patterns
-   *   An array of regular expression patterns, without start and end markers.
-   *
-   * @return bool
-   *   TRUE if $path matches at least one pattern, FALSE otherwise.
-   */
-  protected static function matchPathRegex($path, array $patterns) {
-    foreach ($patterns as $pattern) {
-      if ($pattern === '*' || preg_match('#' . strtr($pattern, '#', '\#') . '#', $path)) {
-        return TRUE;
-      }
-    }
-    return FALSE;
-  }
-
-  /**
-   * Find if the URI should be returned as a torrent.
+   * Find if the URL should be returned as a torrent.
    *
    * @return bool
    *   TRUE if a torrent should be served, FALSE otherwise.
    */
   protected function useTorrent() {
-    return $this->matchPathRegex($this->getLocalPath(), $this->config->getTorrentPaths());
+    return $this->config->getTorrentPaths()->match($this->getLocalPath());
+  }
+
+  /**
+   * Find if the URL should be presigned.
+   *
+   * @return bool
+   *   TRUE if a presigned URL should be served, FALSE otherwise.
+   */
+  protected function usePresigned() {
+    return $this->config->getPresignedPaths()->match($this->getLocalPath());
   }
 }

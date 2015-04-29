@@ -2,6 +2,9 @@
 
 namespace Drupal\amazons3;
 
+use Drupal\amazons3\Matchable\BasicPath;
+use Drupal\amazons3\Matchable\MatchablePaths;
+use Drupal\amazons3\Matchable\PresignedPath;
 use Guzzle\Common\Collection;
 
 /**
@@ -64,14 +67,14 @@ class StreamWrapperConfiguration extends Collection {
     $defaults = array(
       'hostname' => NULL,
       'bucket' => NULL,
-      'torrentPaths' => array(),
-      'presignedPaths' => array(),
-      'saveAsPaths' => array(),
+      'torrentPaths' => new MatchablePaths(),
+      'presignedPaths' => new MatchablePaths(),
+      'saveAsPaths' => new MatchablePaths(),
       'cloudFront' => array(),
       'domain' => NULL,
       'caching' => FALSE,
       'cacheLifetime' => NULL,
-      'reducedRedundancyPaths' => array(),
+      'reducedRedundancyPaths' => new MatchablePaths(),
     );
     return $defaults;
   }
@@ -126,7 +129,7 @@ class StreamWrapperConfiguration extends Collection {
   /**
    * Get the torrent paths.
    *
-   * @return string[]
+   * @return MatchablePaths
    */
   public function getTorrentPaths() {
     return $this->data['torrentPaths'];
@@ -135,16 +138,16 @@ class StreamWrapperConfiguration extends Collection {
   /**
    * Set the array of paths to serve as torrents.
    *
-   * @param string[] $torrentPaths
+   * @param MatchablePaths $torrentPaths
    */
-  public function setTorrentPaths(array $torrentPaths) {
+  public function setTorrentPaths(MatchablePaths $torrentPaths) {
     $this->data['torrentPaths'] = $torrentPaths;
   }
 
   /**
    * Get the array of paths to serve with presigned URLs.
    *
-   * @return string[]
+   * @return MatchablePaths
    */
   public function getPresignedPaths() {
     return $this->data['presignedPaths'];
@@ -153,16 +156,16 @@ class StreamWrapperConfiguration extends Collection {
   /**
    * Set the array of paths to serve with presigned URLs.
    *
-   * @param string[] $presignedPaths
+   * @param MatchablePaths $presignedPaths
    */
-  public function setPresignedPaths(array $presignedPaths) {
+  public function setPresignedPaths(MatchablePaths $presignedPaths) {
     $this->data['presignedPaths'] = $presignedPaths;
   }
 
   /**
    * Return the paths to force to download instead of viewing in the browser.
    *
-   * @return string[]
+   * @return MatchablePaths
    */
   public function getSaveAsPaths() {
     return $this->data['saveAsPaths'];
@@ -171,9 +174,9 @@ class StreamWrapperConfiguration extends Collection {
   /**
    * Set the array of paths to force to download.
    *
-   * @param string[] $saveAsPaths
+   * @param MatchablePaths $saveAsPaths
    */
-  public function setSaveAsPaths($saveAsPaths) {
+  public function setSaveAsPaths(MatchablePaths $saveAsPaths) {
     $this->data['saveAsPaths'] = $saveAsPaths;
   }
 
@@ -261,16 +264,16 @@ class StreamWrapperConfiguration extends Collection {
   }
 
   /**
-   * @return string[]
+   * @return MatchablePaths
    */
   public function getReducedRedundancyPaths() {
     return $this->data['reducedRedundancyPaths'];
   }
 
   /**
-   * @param string[] $reducedRedundancyPaths
+   * @param MatchablePaths $reducedRedundancyPaths
    */
-  public function setReducedRedundancyPaths(array $reducedRedundancyPaths) {
+  public function setReducedRedundancyPaths(MatchablePaths $reducedRedundancyPaths) {
     $this->data['reducedRedundancyPaths'] = $reducedRedundancyPaths;
   }
 
@@ -316,10 +319,22 @@ class StreamWrapperConfiguration extends Collection {
     }
 
     // Torrent list.
-    $config->setTorrentPaths(variable_get('amazons3_torrents', $defaults['torrentPaths']));
+    $torrentPaths = variable_get('amazons3_torrents', $defaults['torrentPaths']);
+    $paths = BasicPath::factory($torrentPaths);
+    if (!empty($paths)) {
+      $config->setTorrentPaths(new MatchablePaths($paths));
+    }
 
     // Presigned url-list.
     $presigned_urls = variable_get('amazons3_presigned_urls', $defaults['presignedPaths']);
+    $paths = array();
+    foreach ($presigned_urls as $presigned_url) {
+      $paths[] = new PresignedPath($presigned_url['pattern'], $presigned_url['timeout']);
+    }
+    if (!empty($paths)) {
+      $config->setPresignedPaths(new MatchablePaths($paths));
+    }
+
     /**
     foreach ($presigned_urls as $presigned_url) {
       // Check for an explicit key.
@@ -333,10 +348,18 @@ class StreamWrapperConfiguration extends Collection {
     }*/
 
     // Force "save as" list.
-    $config->setSaveAsPaths(variable_get('amazons3_saveas', $defaults['saveAsPaths']));
+    $saveAsPaths = variable_get('amazons3_saveas', $defaults['saveAsPaths']);
+    $paths = BasicPath::factory($saveAsPaths);
+    if (!empty($paths)) {
+      $config->setSaveAsPaths(new MatchablePaths($paths));
+    }
 
     // Reduced Redundancy Storage.
-    $config->setReducedRedundancyPaths(variable_get('amazons3_rrs', $defaults['reducedRedundancyPaths']));
+    $rrsPaths = variable_get('amazons3_rrs', $defaults['reducedRedundancyPaths']);
+    $paths = BasicPath::factory($rrsPaths);
+    if (!empty($paths)) {
+      $config->setReducedRedundancyPaths(new MatchablePaths($paths));
+    }
 
     return $config;
   }

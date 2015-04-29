@@ -2,6 +2,7 @@
 
 namespace Drupal\amazons3Test;
 
+use Drupal\amazons3\Matchable\MatchablePaths;
 use Drupal\amazons3\StreamWrapperConfiguration;
 
 class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
@@ -53,17 +54,18 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
     $config->serveWithS3();
     $this->assertFalse($config->isCloudFront());
 
-    $config->setPresignedPaths(array('/'));
-    $this->assertEquals(array('/'), $config->getPresignedPaths());
+    $mp = new MatchablePaths(array('/'));
+    $config->setPresignedPaths($mp);
+    $this->assertEquals($mp, $config->getPresignedPaths());
 
-    $config->setReducedRedundancyPaths(array('/'));
-    $this->assertEquals(array('/'), $config->getReducedRedundancyPaths());
+    $config->setReducedRedundancyPaths($mp);
+    $this->assertEquals($mp, $config->getReducedRedundancyPaths());
 
-    $config->setSaveAsPaths(array('/'));
-    $this->assertEquals(array('/'), $config->getSaveAsPaths());
+    $config->setSaveAsPaths($mp);
+    $this->assertEquals($mp, $config->getSaveAsPaths());
 
-    $config->setTorrentPaths(array('/'));
-    $this->assertEquals(array('/'), $config->getTorrentPaths());
+    $config->setTorrentPaths($mp);
+    $this->assertEquals($mp, $config->getTorrentPaths());
   }
 
   /**
