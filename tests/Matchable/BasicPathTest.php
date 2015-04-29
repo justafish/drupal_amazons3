@@ -48,4 +48,13 @@ class BasicPathTest extends \PHPUnit_Framework_TestCase {
     $path = new BasicPath('*');
     $this->assertSame($path, $path->match('foo'));
   }
+
+  /**
+   * @covers Drupal\amazons3\Matchable\MatchableRegex::match
+   */
+  public function testRegexMatching() {
+    $path = new BasicPath('^ab$');
+    $this->assertSame($path, $path->match('ab'));
+    $this->assertFalse($path->match('yz'));
+  }
 }
