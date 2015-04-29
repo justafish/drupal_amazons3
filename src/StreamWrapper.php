@@ -2,7 +2,8 @@
 
 namespace Drupal\amazons3;
 
-use Capgemini\Cache\DrupalDoctrineCache;
+use Drupal\amazons3\Matchable\BasicPath;
+use Drupal\amazons3\Matchable\PresignedPath;
 use Guzzle\Cache\DoctrineCacheAdapter;
 use \Aws\S3\S3Client as AwsS3Client;
 
@@ -214,25 +215,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
       return $this->url($this::stylesCallback . '/' . $this->uri->getBucket() . $this->uri->getPath(), array('absolute' => TRUE));
     }
 
-    // Allow other modules to change the download link type.
-    // @todo Rather than passing an info array and a path, we should look into
-    // replacing the commandFactory and then letting it call a hook on any S3
-    // operation.
-    // $args = array_merge($args, module_invoke_all('amazons3_url_info', $local_path, $args));
-
     // UI overrides.
-
-    // Presigned URLs.
-    // @todo Presigned URLs are now createPresignedUrl
-    /**
-    $timeout = $args['presigned_url'] ? time() + $args['presigned_url_timeout'] : 0;
-    foreach ($this->presignedUrls as $path => $timeout) {
-      if ($path === '*' || preg_match('#' . strtr($path, '#', '\#') . '#', $local_path)) {
-        $args['presigned_url'] = TRUE;
-        $args['presigned_url_timeout'] = $timeout;
-        break;
-      }
-    }**/
 
     // Save as.
     $expiry = NULL;
@@ -246,6 +229,16 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     if ($this->useTorrent()) {
       $path .= '?torrent';
     }
+
+    if ($presigned = $this->usePresigned()) {
+      $expiry = time() + $presigned->getTimeout();
+    }
+
+    // Allow other modules to change the download link type.
+    // @todo Rather than passing an info array and a path, we should look into
+    // replacing the commandFactory and then letting it call a hook on any S3
+    // operation.
+    // $args = array_merge($args, module_invoke_all('amazons3_url_info', $local_path, $args));
 
     // Generate a standard URL.
     $url = static::$client->getObjectUrl($this->uri->getBucket(), $path, $expiry, $args);
@@ -386,9 +379,9 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   /**
    * Find if this URI should force a download.
    *
-   * @return bool
-   *   TRUE if the local path of the stream URI should force a download. FALSE
-   *   otherwise.
+   * @return BasicPath|bool
+   *   The BasicPath if the local path of the stream URI should force a
+   *   download, FALSE otherwise.
    */
   protected function forceDownload() {
     return $this->config->getSaveAsPaths()->match($this->getLocalPath());
@@ -397,8 +390,8 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   /**
    * Find if the URL should be returned as a torrent.
    *
-   * @return bool
-   *   TRUE if a torrent should be served, FALSE otherwise.
+   * @return BasicPath|bool
+   *   The BasicPath if a torrent should be served, FALSE otherwise.
    */
   protected function useTorrent() {
     return $this->config->getTorrentPaths()->match($this->getLocalPath());
@@ -407,8 +400,9 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   /**
    * Find if the URL should be presigned.
    *
-   * @return bool
-   *   TRUE if a presigned URL should be served, FALSE otherwise.
+   * @return PresignedPath|bool
+   *   The matching PresignedPath if a presigned URL should be served, FALSE
+   *   otherwise.
    */
   protected function usePresigned() {
     return $this->config->getPresignedPaths()->match($this->getLocalPath());

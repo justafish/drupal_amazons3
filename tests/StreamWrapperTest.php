@@ -6,8 +6,10 @@ use Aws\Common\Credentials\Credentials;
 use Aws\S3\S3Client;
 use Drupal\amazons3\Matchable\BasicPath;
 use Drupal\amazons3\Matchable\MatchablePaths;
+use Drupal\amazons3\Matchable\PresignedPath;
 use Drupal\amazons3Test\Stub\StreamWrapper;
 use Drupal\amazons3\StreamWrapperConfiguration;
+use Guzzle\Http\Url;
 
 /**
  * Tests \Drupal\amazons3\StreamWrapper.
@@ -412,5 +414,30 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $wrapper = new StreamWrapper($config);
     $wrapper->setUri('s3://bucket.example.com/torrents/test');
     $this->assertEquals('https://s3.amazonaws.com/bucket.example.com/torrents/test%3Ftorrent', $wrapper->getExternalUrl());
+  }
+
+  /**
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   * @covers \Drupal\amazons3\StreamWrapper::usePresigned
+   */
+  public function testPresignedPath() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+      'expiration' => 0,
+      'presignedPaths' => new MatchablePaths(PresignedPath::factory(array('presigned/.*' => 30))),
+    ]);
+
+    $wrapper = new StreamWrapper($config);
+    $wrapper->setUri('s3://bucket.example.com/presigned/test');
+    $url = Url::factory($wrapper->getExternalUrl());
+
+    $this->assertNotNull($url->getQuery()->get('AWSAccessKeyId'));
+    $this->assertNotNull($url->getQuery()->get('Signature'));
+    $this->assertGreaterThanOrEqual(time() + 30, $url->getQuery()->get('Expires'));
+
+    // We allow a bit of fuzziness in the expiry to cover a different call to
+    // time() in getExternalUrl().
+    $this->assertLessThanOrEqual(time() + 32, $url->getQuery()->get('Expires'));
   }
 }
