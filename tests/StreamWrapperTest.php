@@ -434,7 +434,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
 
     $this->assertNotNull($url->getQuery()->get('AWSAccessKeyId'));
     $this->assertNotNull($url->getQuery()->get('Signature'));
-    $this->assertGreaterThanOrEqual(time() + 30, $url->getQuery()->get('Expires'));
+    $this->assertGreaterThanOrEqual(time(), $url->getQuery()->get('Expires'));
 
     // We allow a bit of fuzziness in the expiry to cover a different call to
     // time() in getExternalUrl().
