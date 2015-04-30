@@ -440,4 +440,20 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     // time() in getExternalUrl().
     $this->assertLessThanOrEqual(time() + 32, $url->getQuery()->get('Expires'));
   }
+
+  /**
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   */
+  public function testCustomDomain() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'domain' => 'static.example.com',
+      'caching' => FALSE,
+      'expiration' => 0,
+    ]);
+    $wrapper = new StreamWrapper($config);
+    $wrapper->setUri('s3://bucket.example.com/image.jpg');
+    $url = Url::factory($wrapper->getExternalUrl());
+    $this->assertEquals('static.example.com', $url->getHost());
+  }
 }

@@ -57,6 +57,10 @@ class StreamWrapperConfiguration extends Collection {
       throw new \InvalidArgumentException('Config is missing the following keys: ' . implode(', ', $missing));
     }
 
+    if (!$data['domain']) {
+      $data['domain'] = $data['bucket'];
+    }
+
     return new static($data);
   }
 
