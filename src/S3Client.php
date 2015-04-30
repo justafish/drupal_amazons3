@@ -10,6 +10,7 @@ namespace Drupal\amazons3;
 use Aws\Common\Credentials\Credentials;
 use Drupal\amazons3\Exception\S3ConnectValidationException;
 use Guzzle\Common\Collection;
+use Guzzle\Service\Command\Factory\AliasFactory;
 
 /**
  * A wrapper around S3Client::factory() using aws_key / aws_secret variables.
@@ -20,6 +21,42 @@ use Guzzle\Common\Collection;
  */
 class S3Client {
   use DrupalAdapter\Bootstrap;
+
+  /**
+   * This set of commandAliases is a protected static with no getter on the
+   * S3Client class.
+   *
+   * @todo fix this upstream.
+   *
+   * @var array
+   */
+  protected static $commandAliases = array(
+    // REST API Docs Aliases
+    'GetService' => 'ListBuckets',
+    'GetBucket'  => 'ListObjects',
+    'PutBucket'  => 'CreateBucket',
+
+    // SDK 1.x Aliases
+    'GetBucketHeaders'              => 'HeadBucket',
+    'GetObjectHeaders'              => 'HeadObject',
+    'SetBucketAcl'                  => 'PutBucketAcl',
+    'CreateObject'                  => 'PutObject',
+    'DeleteObjects'                 => 'DeleteMultipleObjects',
+    'PutObjectCopy'                 => 'CopyObject',
+    'SetObjectAcl'                  => 'PutObjectAcl',
+    'GetLogs'                       => 'GetBucketLogging',
+    'GetVersioningStatus'           => 'GetBucketVersioning',
+    'SetBucketPolicy'               => 'PutBucketPolicy',
+    'CreateBucketNotification'      => 'PutBucketNotification',
+    'GetBucketNotifications'        => 'GetBucketNotification',
+    'CopyPart'                      => 'UploadPartCopy',
+    'CreateWebsiteConfig'           => 'PutBucketWebsite',
+    'GetWebsiteConfig'              => 'GetBucketWebsite',
+    'DeleteWebsiteConfig'           => 'DeleteBucketWebsite',
+    'CreateObjectExpirationConfig'  => 'PutBucketLifecycle',
+    'GetObjectExpirationConfig'     => 'GetBucketLifecycle',
+    'DeleteObjectExpirationConfig'  => 'DeleteBucketLifecycle',
+  );
 
   /**
    * Create a new S3Client using aws_key / aws_secret $conf variables.
@@ -36,7 +73,10 @@ class S3Client {
       $config['credentials'] = new Credentials(static::variable_get('amazons3_key'), static::variable_get('amazons3_secret'));
     }
 
-    return \Aws\S3\S3Client::factory($config);
+    $client = \Aws\S3\S3Client::factory($config);
+    static::setCommandFactory($client);
+
+    return $client;
   }
 
   /**
@@ -58,5 +98,22 @@ class S3Client {
     if (!$client->doesBucketExist($bucket, FALSE)) {
       throw new S3ConnectValidationException('The S3 access credentials are invalid or the bucket does not exist.');
     }
+  }
+
+  /**
+   * Override the command factory on a client.
+   *
+   * @param \Aws\S3\S3Client $client
+   *   The client to override.
+   *
+   * @codeCoverageIgnore
+   */
+  protected static function setCommandFactory($client) {
+    $default = CompositeFactory::getDefaultChain($client);
+    $default->add(
+      new AliasFactory($client, static::$commandAliases),
+      'Guzzle\Service\Command\Factory\ServiceDescriptionFactory'
+    );
+    $client->setCommandFactory($default);
   }
 }
