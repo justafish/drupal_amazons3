@@ -93,7 +93,7 @@ function amazons3_admin() {
   $form['amazons3_torrents'] = array(
     '#type' => 'textarea',
     '#title' => t('Torrents'),
-    '#description' => t('A list of paths that should be delivered through a torrent url. Enter one value per line e.g. "mydir/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>. This won\'t work for CloudFront presigned URLs.', array('@preg_match' => 'http://php.net/preg_match')),
+    '#description' => t('A list of paths that should be delivered through a torrent url. Enter one value per line e.g. "mydir/.*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>. This won\'t work for CloudFront presigned URLs.', array('@preg_match' => 'http://php.net/preg_match')),
     '#default_value' => _amazons3_implode('amazons3_torrents'),
     '#rows' => 10,
   );
@@ -101,7 +101,7 @@ function amazons3_admin() {
   $form['amazons3_presigned_urls'] = array(
     '#type' => 'textarea',
     '#title' => t('Presigned URLs'),
-    '#description' => t('A list of timeouts and paths that should be delivered through a presigned url. Enter one value per line, in the format &lt;timeout&gt;|&lt;path&gt;|&lt;protocol&gt;. e.g. "60|mydir/*" or "60|mydir/*|https". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>.', array('@preg_match' => 'http://php.net/preg_match')),
+    '#description' => t('A list of timeouts and paths that should be delivered through a presigned url. Enter one value per line, in the format &lt;timeout&gt;|&lt;path&gt; e.g. "60|mydir/.*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>.', array('@preg_match' => 'http://php.net/preg_match')),
     '#default_value' => _amazons3_implode('amazons3_presigned_urls'),
     '#rows' => 10,
   );
@@ -109,7 +109,7 @@ function amazons3_admin() {
   $form['amazons3_saveas'] = array(
     '#type' => 'textarea',
     '#title' => t('Force Save As'),
-    '#description' => t('A list of paths that force the user to save the file by using Content-disposition header. Prevents autoplay of media. Enter one value per line. e.g. "mydir/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>. Files must use a presigned url to use this, however it won\'t work for CloudFront presigned URLs and you\'ll need to set the content-disposition header in the file metadata before saving.', array('@preg_match' => 'http://php.net/preg_match')),
+    '#description' => t('A list of paths that force the user to save the file by using Content-disposition header. Prevents autoplay of media. Enter one value per line. e.g. "mydir/.*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>. Files must use a presigned url to use this, however it won\'t work for CloudFront presigned URLs and you\'ll need to set the content-disposition header in the file metadata before saving.', array('@preg_match' => 'http://php.net/preg_match')),
     '#default_value' => _amazons3_implode('amazons3_saveas'),
     '#rows' => 10,
   );
@@ -117,7 +117,7 @@ function amazons3_admin() {
   $form['amazons3_rrs'] = array(
     '#type' => 'textarea',
     '#title' => t('Reduced Redundancy Storage'),
-    '#description' => t('A list of paths that save the file in <a href="@rrs">Reduced Redundancy Storage</a>. Enter one value per line. e.g. "styles/*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>.', array('@rrs' => 'http://aws.amazon.com/s3/faqs/#rrs_anchor', '@preg_match' => 'http://php.net/preg_match')),
+    '#description' => t('A list of paths that save the file in <a href="@rrs">Reduced Redundancy Storage</a>. Enter one value per line. e.g. "styles/.*". Paths are relative to the Drupal file directory and use patterns as per <a href="@preg_match">preg_match</a>.', array('@rrs' => 'http://aws.amazon.com/s3/faqs/#rrs_anchor', '@preg_match' => 'http://php.net/preg_match')),
     '#default_value' => _amazons3_implode('amazons3_rrs'),
     '#rows' => 10,
   );
@@ -166,6 +166,17 @@ function _amazons3_explode_list($form, &$form_state) {
     $values[$form_key] = array_map('trim', $values[$form_key]);
     $values[$form_key] = array_filter($values[$form_key], 'strlen');
   }
+
+  // Presigned URLs are special in that they are pipe-separated lines.
+  $presigned_config = array();
+  foreach ($values['amazons3_presigned_urls'] as $presigned_line) {
+    list($timeout, $pattern) = explode("|", $presigned_line);
+    $presigned_config[] = array(
+      'timeout' => $timeout,
+      'pattern' => $pattern,
+    );
+  }
+  $values['amazons3_presigned_urls'] = $presigned_config;
 }
 
 /**
@@ -178,5 +189,13 @@ function _amazons3_explode_list($form, &$form_state) {
  *   The imploded string.
  */
 function _amazons3_implode($name) {
+  if ($name == 'amazons3_presigned_urls') {
+    $lines = array();
+    foreach (variable_get($name, array()) as $config) {
+      $lines[] = $config['timeout'] . '|' . $config['pattern'];
+    }
+    return implode("\n", $lines);
+  }
+
   return implode("\n", variable_get($name, array()));
 }
