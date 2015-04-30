@@ -249,6 +249,19 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
       $url->setHost($this->config->getDomain());
     }
 
+    // Real CloudFront credentials are required to test this, so we ignore
+    // testing this.
+    // @codeCoverageIgnoreStart
+    if ($expiry && $this->config->isCloudFront()) {
+      $cf = $this->config->getCloudFront();
+      $options = array(
+        'url' => (string) $url,
+        'expires' => $expiry,
+      );
+      $url = Url::factory($cf->getSignedUrl($options));
+    }
+    // @codeCoverageIgnoreEnd
+
     return (string) $url;
   }
 
