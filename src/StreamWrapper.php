@@ -6,6 +6,7 @@ use Drupal\amazons3\Matchable\BasicPath;
 use Drupal\amazons3\Matchable\PresignedPath;
 use Guzzle\Cache\DoctrineCacheAdapter;
 use \Aws\S3\S3Client as AwsS3Client;
+use Guzzle\Http\Url;
 
 /**
  * @file
@@ -241,9 +242,14 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     // $args = array_merge($args, module_invoke_all('amazons3_url_info', $local_path, $args));
 
     // Generate a standard URL.
-    $url = static::$client->getObjectUrl($this->uri->getBucket(), $path, $expiry, $args);
+    $url = Url::factory(static::$client->getObjectUrl($this->uri->getBucket(), $path, $expiry, $args));
 
-    return $url;
+    // CNAME support.
+    if ($this->config->getDomain() != $this->uri->getBucket()) {
+      $url->setHost($this->config->getDomain());
+    }
+
+    return (string) $url;
   }
 
   /**
