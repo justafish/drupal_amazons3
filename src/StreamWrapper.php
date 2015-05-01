@@ -118,7 +118,6 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
       $this->setClient($name::factory());
     }
 
-    // @todo Add a static cache.
     if ($this->config->isCaching() && !static::$cache) {
       static::attachCache(
         new DoctrineCacheAdapter(new ChainCache([new ArrayCache(), new Cache()])),
@@ -235,12 +234,6 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     if ($presigned = $this->usePresigned()) {
       $expiry = time() + $presigned->getTimeout();
     }
-
-    // Allow other modules to change the download link type.
-    // @todo Rather than passing an info array and a path, we should look into
-    // replacing the commandFactory and then letting it call a hook on any S3
-    // operation.
-    // $args = array_merge($args, module_invoke_all('amazons3_url_info', $local_path, $args));
 
     // @codeCoverageIgnoreStart
     if ($expiry && $this->config->isCloudFront()) {
