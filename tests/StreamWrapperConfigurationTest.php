@@ -75,4 +75,12 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
     $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket'));
     $config->setCacheLifetime(0);
   }
+
+  /**
+   * @covers Drupal\amazons3\StreamWrapperConfiguration::fromConfig
+   */
+  public function testDefaultHostname() {
+    $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket'));
+    $this->assertEquals('s3.amazonaws.com', $config->getDomain());
+  }
 }

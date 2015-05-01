@@ -456,4 +456,18 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $url = Url::factory($wrapper->getExternalUrl());
     $this->assertEquals('static.example.com', $url->getHost());
   }
+
+  /**
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   */
+  public function testNoCustomDomain() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+    ]);
+    $wrapper = new StreamWrapper($config);
+    $wrapper->setUri('s3://bucket.example.com/image.jpg');
+    $url = Url::factory($wrapper->getExternalUrl());
+    $this->assertEquals('s3.amazonaws.com', $url->getHost());
+  }
 }
