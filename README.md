@@ -12,6 +12,16 @@ You can switch it on as the default file system scheme, or individually for file
 - [Composer Manager](https://www.drupal.org/project/composer_manager)
 - [PHP's cURL extension](https://php.net/manual/en/book.curl.php) (nearly always available by default)
 
+# Configuration
+Most module configuration is handled at `admin/config/media/amazons3`. At a
+minimum, S3 credentials and a default bucket will need to be configured. It's
+best to configure these settings in `$conf` variables in `settings.php`.
+
+To use signed CloudFront URLs, the CloudFront private key and ID are needed.
+The private key is a `.pem` file, and should be stored outside of your document
+root. Set `$conf['amazons3_cloudfront_private_key']` to the path of the private
+key and `$conf['amazons3_cloudfront_keypair_id']` to the key ID in settings.php to enable this feature.
+
 ## Known Issues
 
 ### Bucket names with "." in them

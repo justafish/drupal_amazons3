@@ -74,7 +74,9 @@ class StreamWrapperConfiguration extends Collection {
       'torrentPaths' => new MatchablePaths(),
       'presignedPaths' => new MatchablePaths(),
       'saveAsPaths' => new MatchablePaths(),
-      'cloudFront' => array(),
+      'cloudFront' => FALSE,
+      'cloudFrontPrivateKey' => NULL,
+      'cloudFrontKeyPairId' => NULL,
       'domain' => NULL,
       'caching' => FALSE,
       'cacheLifetime' => NULL,
@@ -201,6 +203,37 @@ class StreamWrapperConfiguration extends Collection {
   }
 
   /**
+   * Set the CloudFront credentials to use.
+   *
+   * @param string $path
+   *   The path to the file containing the private key.
+   * @param string $keyPairId
+   *   The key pair ID.
+   */
+  public function setCloudFrontCredentials($path, $keyPairId) {
+    if (!file_exists($path)) {
+      throw new \InvalidArgumentException("$path does not exist.");
+    }
+
+    $this->data['cloudFrontPrivateKey'] = $path;
+    $this->data['cloudFrontKeyPairId'] = $keyPairId;
+  }
+
+  /**
+   * @return \Aws\CloudFront\CloudFrontClient
+   */
+  public function getCloudFront() {
+    if (!$this->isCloudFront()) {
+      throw new \LogicException('CloudFront is not enabled.');
+    }
+
+    return CloudFrontClient::factory(array(
+      'private_key' => $this->data['cloudFrontPrivateKey'],
+      'key_pair_id' => $this->data['cloudFrontKeyPairId'],
+    ));
+  }
+
+  /**
    * Set if objects should be served with S3 directly.
    */
   public function serveWithS3() {
@@ -290,7 +323,6 @@ class StreamWrapperConfiguration extends Collection {
    * @codeCoverageIgnore
    */
   public static function fromDrupalVariables() {
-    $config = new static();
     $config = self::fromConfig(array('bucket' => variable_get('amazons3_bucket', NULL)));
     $defaults = $config->defaults();
 
@@ -305,8 +337,11 @@ class StreamWrapperConfiguration extends Collection {
       else {
         $config->setDomain($config->getBucket());
       }
-      if (!variable_get('amazons3_cloudfront', $defaults['cloudFront'])) {
-        $config->serveWithS3();
+      if (variable_get('amazons3_cloudfront', $defaults['cloudFront'])) {
+        $path = variable_get('amazons3_cloudfront_private_key', $defaults['cloudFrontPrivateKey']);
+        $keyPairId = variable_get('amazons3_cloudfront_keypair_id', $defaults['cloudFrontKeyPairId']);
+        $config->setCloudFrontCredentials($path, $keyPairId);
+        $config->serveWithCloudFront();
       }
     }
     else {

@@ -74,7 +74,7 @@ function amazons3_admin() {
   $form['amazons3_cloudfront'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enable CloudFront'),
-    '#description' => t('Deliver URLs through a CloudFront domain when using presigned URLs.'),
+    '#description' => t('Deliver URLs through a CloudFront domain when using presigned URLs. This requires additional settings.php configuation. See README.md for details. Note that CloudFront URLs do not support other configuration options like Force Save As or Torrents, but they do support presigned URLs.'),
     '#default_value' => variable_get('amazons3_cloudfront', 0),
     '#states' => array(
       'visible' => array(
@@ -135,10 +135,10 @@ function amazons3_admin_validate($form, &$form_state) {
   $cloudfront = $form_state['values']['amazons3_cloudfront'];
 
   if ($cloudfront) {
-    $keypair = variable_get('aws_cloudfront_keypair', '');
-    $pem = variable_get('aws_cloudfront_pem', '');
+    $keypair = variable_get('amazons3_cloudfront_keypair_id', FALSE);
+    $pem = variable_get('amazons3_cloudfront_private_key', FALSE);
     if (empty($keypair) || empty($pem)) {
-      form_set_error('amazons3_cloudfront', t('You must configure your CloudFront credentials in the awksdk module.'));
+      form_set_error('amazons3_cloudfront', t('You must configure your CloudFront credentials in settings.php.'));
     }
   }
 }

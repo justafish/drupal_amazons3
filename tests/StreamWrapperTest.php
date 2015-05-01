@@ -191,6 +191,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
    * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
    * @covers \Drupal\amazons3\StreamWrapper::getLocalPath
    * @covers \Drupal\amazons3\StreamWrapper::forceDownload
+   * @covers \Drupal\amazons3\StreamWrapper::getS3Url
    */
   public function testExternalUri() {
     $wrapper = new StreamWrapper();
@@ -329,6 +330,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
 
   /**
    * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   * @covers \Drupal\amazons3\StreamWrapper::getS3Url
    * @covers \Drupal\amazons3\StreamWrapper::getContentDispositionAttachment
    * @covers \Drupal\amazons3\StreamWrapper::forceDownload
    */
@@ -364,6 +366,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
    * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
    * @covers \Drupal\amazons3\StreamWrapper::getContentDispositionAttachment
    * @covers \Drupal\amazons3\StreamWrapper::forceDownload
+   * @covers \Drupal\amazons3\StreamWrapper::getS3Url
    */
   public function testSaveAsAll() {
     $config = StreamWrapperConfiguration::fromConfig([
@@ -402,6 +405,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
    *
    * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
    * @covers \Drupal\amazons3\StreamWrapper::useTorrent
+   * @covers \Drupal\amazons3\StreamWrapper::getS3Url
    */
   public function testTorrentPath() {
     $config = StreamWrapperConfiguration::fromConfig([
@@ -419,6 +423,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
   /**
    * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
    * @covers \Drupal\amazons3\StreamWrapper::usePresigned
+   * @covers \Drupal\amazons3\StreamWrapper::getS3Url
    */
   public function testPresignedPath() {
     $config = StreamWrapperConfiguration::fromConfig([
@@ -443,6 +448,8 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
 
   /**
    * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   * @covers \Drupal\amazons3\StreamWrapper::injectCname
+   * @covers \Drupal\amazons3\StreamWrapper::getS3Url
    */
   public function testCustomDomain() {
     $config = StreamWrapperConfiguration::fromConfig([
@@ -459,6 +466,7 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
 
   /**
    * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   * @covers \Drupal\amazons3\StreamWrapper::injectCname
    */
   public function testNoCustomDomain() {
     $config = StreamWrapperConfiguration::fromConfig([

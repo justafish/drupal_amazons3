@@ -27,6 +27,9 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
     $config = StreamWrapperConfiguration::fromConfig($settings);
   }
 
+  /**
+   * @covers Drupal\amazons3\StreamWrapperConfiguration
+   */
   public function testSetters() {
     $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket'));
 
@@ -66,6 +69,10 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
 
     $config->setTorrentPaths($mp);
     $this->assertEquals($mp, $config->getTorrentPaths());
+
+    $config->serveWithCloudFront();
+    $config->setCloudFrontCredentials('/dev/null', 'keypair-id');
+    $this->assertInstanceOf('Aws\CloudFront\CloudFrontClient', $config->getCloudFront());
   }
 
   /**
@@ -74,6 +81,24 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
   public function testCacheLifetimeException() {
     $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket'));
     $config->setCacheLifetime(0);
+  }
+
+  /**
+   * @covers Drupal\amazons3\StreamWrapperConfiguration
+   * @expectedException \InvalidArgumentException
+   */
+  public function testCloudFrontCredentials() {
+    $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket'));
+    $config->setCloudFrontCredentials('/does-not-exist', 'asdf');
+  }
+
+  /**
+   * @covers Drupal\amazons3\StreamWrapperConfiguration
+   * @expectedException \LogicException
+   */
+  public function testCloudFrontNotSetUp() {
+    $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket'));
+    $config->getCloudFront();
   }
 
   /**
