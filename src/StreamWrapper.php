@@ -8,6 +8,7 @@ use Drupal\amazons3\Matchable\BasicPath;
 use Drupal\amazons3\Matchable\PresignedPath;
 use Guzzle\Cache\DoctrineCacheAdapter;
 use \Aws\S3\S3Client as AwsS3Client;
+use Guzzle\Http\Mimetypes;
 use Guzzle\Http\Url;
 
 /**
@@ -174,6 +175,45 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    */
   public function stream_lock($operation) {
     return FALSE;
+  }
+
+  /**
+   * Overrides stream_flush() to set the storage class.
+   *
+   * {@inheritdoc}
+   */
+  public function stream_flush()
+  {
+    if ($this->mode == 'r') {
+      return false;
+    }
+
+
+    $this->body->rewind();
+    $params = $this->params;
+    $params['Body'] = $this->body;
+
+    // Attempt to guess the ContentType of the upload based on the
+    // file extension of the key
+    if (!isset($params['ContentType']) &&
+      ($type = Mimetypes::getInstance()->fromFilename($params['Key']))
+    ) {
+      $params['ContentType'] = $type;
+    }
+
+    try {
+      // We may not have a URI set when this is called.
+      $this->uri = new S3Url($params['Bucket'], $params['Key']);
+
+      if ($this->useRrs()) {
+        $params['StorageClass'] = 'REDUCED_REDUNDANCY';
+      }
+      static::$client->putObject($params);
+      $this->clearStatInfo('s3://' . $params['Bucket'] . '/' . $params['Key']);
+      return true;
+    } catch (\Exception $e) {
+      return $this->triggerError($e->getMessage());
+    }
   }
 
   /**
@@ -408,6 +448,17 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    */
   protected function usePresigned() {
     return $this->config->getPresignedPaths()->match($this->getLocalPath());
+  }
+
+  /**
+   * Find if the URL should be saved to Reduced Redundancy Storage.
+   *
+   * @return PresignedPath|bool
+   *   The matching PresignedPath if a presigned URL should be served, FALSE
+   *   otherwise.
+   */
+  protected function useRrs() {
+    return $this->config->getReducedRedundancyPaths()->match($this->getLocalPath());
   }
 
   /**
