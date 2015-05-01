@@ -245,7 +245,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     $url = Url::factory(static::$client->getObjectUrl($this->uri->getBucket(), $path, $expiry, $args));
 
     // CNAME support.
-    if ($this->config->getDomain() != $this->uri->getBucket()) {
+    if ($this->config->getDomain() != $url->getHost()) {
       $url->setHost($this->config->getDomain());
     }
 

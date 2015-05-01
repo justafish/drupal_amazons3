@@ -58,7 +58,7 @@ class StreamWrapperConfiguration extends Collection {
     }
 
     if (!$data['domain']) {
-      $data['domain'] = $data['bucket'];
+      $data['domain'] = 's3.amazonaws.com';
     }
 
     return new static($data);
@@ -345,7 +345,7 @@ class StreamWrapperConfiguration extends Collection {
       }
     }
     else {
-      $config->setDomain($config->getBucket() . '.s3.amazonaws.com');
+      $config->setDomain('s3.amazonaws.com');
     }
 
     // Check whether local file caching is turned on.
