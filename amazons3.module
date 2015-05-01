@@ -299,23 +299,49 @@ function amazons3_field_widget_form_alter(&$element, &$form_state, $context) {
  *   A file directory URI with tokens replaced.
  */
 function amazons3_field_widget_uri(array $field, array $instance, array $data = array()) {
-  if ($field['settings']['uri_scheme'] == 's3') {
-    $destination = $field['settings']['amazons3_bucket'];
+  $uri_scheme = $field['settings']['uri_scheme'];
+  $file_directory = isset($instance['settings']['file_directory']) ? $instance['settings']['file_directory'] : NULL;
+  $bucket = isset($field['settings']['amazons3_bucket']) ? $field['settings']['amazons3_bucket'] : NULL;
+  return amazons3_upload_location($uri_scheme, $bucket, $file_directory, $data);
+}
+
+/**
+ * Return a URI for use in an #upload_location or similar form element.
+ *
+ * @param string $uri_scheme
+ *   The scheme to use for the URI.
+ * @param string $bucket
+ *   (optional) bucket, if the URI is an s3 URI.
+ * @param string $file_directory
+ *   (optional) File directory for the URI.
+ * @param array $data
+ *   (optional) Array of data to use when replacing tokens.
+ *
+ * @return string
+ *   A fully-qualified string URI.
+ */
+function amazons3_upload_location($uri_scheme, $bucket = NULL, $file_directory = NULL, array $data = array()) {
+  if ($uri_scheme == 's3') {
+    // @todo Replace this with calls on an S3Url.
+    $destination = $bucket;
+
+    // If no bucket is specified, but this is an S3 URI, use the default bucket.
     if (empty($destination)) {
-      $destination = variable_get('amazons3_bucket', '');
+      $config = \Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables();
+      $destination = $config->getBucket();
     }
-    if (!empty($instance['settings']['file_directory'])) {
-      $destination .= '/' . trim($instance['settings']['file_directory'], '/');
+    if (!empty($file_directory)) {
+      $destination .= '/' . trim($file_directory, '/');
     }
   }
   else {
-    $destination = trim($instance['settings']['file_directory'], '/');
+    $destination = trim($file_directory, '/');
   }
 
   // Replace tokens.
   $destination = token_replace($destination, $data);
 
-  return $field['settings']['uri_scheme'] . '://' . $destination;
+  return $uri_scheme . '://' . $destination;
 }
 
 /**
@@ -334,6 +360,82 @@ function amazons3_form_field_ui_field_settings_form_alter(&$form, &$form_state, 
 function amazons3_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id) {
   $type = $form['#field']['type'];
   _amazons3_field_configuration($form, $type);
+}
+
+/**
+ * Implements hook_file_entity_upload_destination_uri_alter().
+ */
+function amazons3_file_entity_upload_destination_uri_alter(&$result, array $params = array(), array $data = array()) {
+  if ($params['uri_scheme'] == 's3') {
+    try {
+      $url = S3Url::factory($result);
+      $s3 = S3Client::factory();
+      S3Client::validateBucketExists($url->getBucket(), $s3, new \Drupal\amazons3\Cache());
+      $bucket = $url->getBucket();
+    }
+    catch (\InvalidArgumentException $e) {
+      // We couldn't parse the URL, so check to see if it is bare.
+      if ($result == 's3://') {
+        $config = \Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables();
+        $bucket = $config->getBucket();
+      }
+      else {
+        throw $e;
+      }
+    }
+    catch (S3ConnectValidationException $e) {
+      if (!empty($params['field']) && $field = field_info_field($params['field'])) {
+        $bucket = $field['settings']['amazons3_bucket'];
+      }
+      else {
+        $config = \Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables();
+        $bucket = $config->getBucket();
+      }
+    }
+    $result = amazons3_upload_location('s3', $bucket, $params['file_directory'], $data);
+  }
+}
+
+/**
+ * Implements hook_file_stream_wrapper_uri_normalize_alter().
+ */
+function amazons3_file_stream_wrapper_uri_normalize_alter(&$uri, $scheme, $target) {
+  if ($scheme == 's3') {
+    try {
+      // If this try passes, $uri is a fully-formed s3:// URI with a bucket.
+      $url = S3Url::factory($uri);
+
+      // Validate that the bucket exists. Sometimes we might be passed in URIs
+      // without a bucket, like s3://image.jpg. If image.jpg is not a bucket, we
+      // assume that image.jpg is supposed to be created in the default bucket.
+      $s3 = S3Client::factory();
+      S3Client::validateBucketExists($url->getBucket(), $s3, new \Drupal\amazons3\Cache());
+    }
+    catch (\InvalidArgumentException $e) {
+      // Catch if S3Url::factory() can not parse $uri. That happens if we are
+      // passed in a bare URI like s3://. Fall back to the default bucket.
+      $uri = amazons3_uri_add_bucket($target);
+    }
+    catch (S3ConnectValidationException $e) {
+      // Catch if a bucket does not exist or is invalid.
+      $uri = amazons3_uri_add_bucket($target);
+    }
+  }
+}
+
+/**
+ * Add the default bucket and return a string URL.
+ *
+ * @param string $target
+ *   The file path to return the URL for.
+ *
+ * @return string
+ *   A fully-qualified s3:// URL.
+ */
+function amazons3_uri_add_bucket($target) {
+  $config = \Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables();
+  $url = new S3Url($config->getBucket(), $target);
+  return (string) $url;
 }
 
 /**
