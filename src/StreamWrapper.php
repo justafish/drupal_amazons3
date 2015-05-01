@@ -241,26 +241,15 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     // operation.
     // $args = array_merge($args, module_invoke_all('amazons3_url_info', $local_path, $args));
 
-    // Generate a standard URL.
-    $url = Url::factory(static::$client->getObjectUrl($this->uri->getBucket(), $path, $expiry, $args));
-
-    // CNAME support.
-    if ($this->config->getDomain() != $url->getHost()) {
-      $url->setHost($this->config->getDomain());
-    }
-
-    // Real CloudFront credentials are required to test this, so we ignore
-    // testing this.
     // @codeCoverageIgnoreStart
     if ($expiry && $this->config->isCloudFront()) {
-      $cf = $this->config->getCloudFront();
-      $options = array(
-        'url' => (string) $url,
-        'expires' => $expiry,
-      );
-      $url = Url::factory($cf->getSignedUrl($options));
+      $url = $this->getCloudFrontUrl($path, $expiry);
     }
     // @codeCoverageIgnoreEnd
+    else {
+      // Generate a standard URL.
+      $url = $this->getS3Url($path, $expiry, $args);
+    }
 
     return (string) $url;
   }
@@ -425,5 +414,70 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    */
   protected function usePresigned() {
     return $this->config->getPresignedPaths()->match($this->getLocalPath());
+  }
+
+  /**
+   * Replace the host in a URL with the configured domain.
+   *
+   * @param Url $url
+   *   The URL to modify.
+   */
+  protected function injectCname($url) {
+    if ($this->config->getDomain() != $url->getHost()) {
+      $url->setHost($this->config->getDomain());
+    }
+  }
+
+  /**
+   * Get a CloudFront URL for an S3 key.
+   *
+   * @param $key
+   *   The S3 object key.
+   * @param int $expiry
+   *   (optional) Expiry time for the URL, as a Unix timestamp.
+   * @return \Guzzle\Http\Url
+   *   The CloudFront URL.
+   */
+  protected function getCloudFrontUrl($key, $expiry = NULL) {
+    // Real CloudFront credentials are required to test this, so we ignore
+    // testing this.
+    // @codeCoverageIgnoreStart
+    $cf = $this->config->getCloudFront();
+    $url = new Url('https', $this->config->getDomain());
+    $url->setPath($key);
+    $this->injectCname($url);
+    $options = array(
+      'url' => (string) $url,
+      'expires' => $expiry,
+    );
+    $url = Url::factory($cf->getSignedUrl($options));
+    return $url;
+    // @codeCoverageIgnoreEnd
+  }
+
+  /**
+   * Get a regular S3 URL for a key.
+   *
+   * @param string $key
+   *   The S3 object key.
+   * @param int $expiry
+   *   (optional) Expiry time for the URL, as a Unix timestamp.
+   * @param array $args
+   *   (optional) Array of additional arguments to pass to getObjectUrl().
+   *
+   * @return \Guzzle\Http\Url
+   *   An https URL to access the key.
+   */
+  protected function getS3Url($key, $expiry = NULL, array $args = array()) {
+    $url = Url::factory(
+      static::$client->getObjectUrl(
+        $this->uri->getBucket(),
+        $key,
+        $expiry,
+        $args
+      )
+    );
+    $this->injectCname($url);
+    return $url;
   }
 }
