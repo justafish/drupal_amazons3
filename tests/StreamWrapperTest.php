@@ -117,8 +117,16 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $reflect = new \ReflectionObject($wrapper);
     $cache = $reflect->getProperty('cache');
     $cache->setAccessible(TRUE);
-    $this->assertInstanceOf('Capgemini\Cache\DrupalDoctrineCache', $cache->getValue()->getCacheObject());
+    try {
+      $this->assertInstanceOf('Doctrine\Common\Cache\ChainCache', $cache->getValue()->getCacheObject());
+    }
+    catch (\Exception $e) {
+    }
     StreamWrapper::detachCache();
+
+    if (isset($e)) {
+      throw $e;
+    }
   }
 
   /**

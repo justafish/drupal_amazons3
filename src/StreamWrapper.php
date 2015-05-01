@@ -2,6 +2,8 @@
 
 namespace Drupal\amazons3;
 
+use Doctrine\Common\Cache\ArrayCache;
+use Doctrine\Common\Cache\ChainCache;
 use Drupal\amazons3\Matchable\BasicPath;
 use Drupal\amazons3\Matchable\PresignedPath;
 use Guzzle\Cache\DoctrineCacheAdapter;
@@ -118,9 +120,8 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
 
     // @todo Add a static cache.
     if ($this->config->isCaching() && !static::$cache) {
-      $cache = new Cache();
       static::attachCache(
-        new DoctrineCacheAdapter($cache),
+        new DoctrineCacheAdapter(new ChainCache([new ArrayCache(), new Cache()])),
         $this->config->getCacheLifetime()
       );
     }
