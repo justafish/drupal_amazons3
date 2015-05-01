@@ -74,7 +74,7 @@ function amazons3_admin() {
   $form['amazons3_cloudfront'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enable CloudFront'),
-    '#description' => t('Deliver URLs through a CloudFront domain when using presigned URLs. This requires additional settings.php configuation. See README.md for details.'),
+    '#description' => t('Deliver URLs through a CloudFront domain when using presigned URLs. This requires additional settings.php configuation. See README.md for details. Note that CloudFront URLs do not support other configuration options like Force Save As or Torrents, but they do support presigned URLs.'),
     '#default_value' => variable_get('amazons3_cloudfront', 0),
     '#states' => array(
       'visible' => array(
