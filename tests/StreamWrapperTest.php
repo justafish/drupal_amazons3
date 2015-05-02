@@ -9,7 +9,9 @@ use Drupal\amazons3\Matchable\MatchablePaths;
 use Drupal\amazons3\Matchable\PresignedPath;
 use Drupal\amazons3Test\Stub\StreamWrapper;
 use Drupal\amazons3\StreamWrapperConfiguration;
+use Guzzle\Http\Message\Response;
 use Guzzle\Http\Url;
+use Guzzle\Tests\GuzzleTestCase;
 
 /**
  * Tests \Drupal\amazons3\StreamWrapper.
@@ -17,7 +19,7 @@ use Guzzle\Http\Url;
  * @class StreamWrapperTest
  * @package Drupal\amazons3
  */
-class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
+class StreamWrapperTest extends GuzzleTestCase {
 
   /**
    * @var StreamWrapper
@@ -294,7 +296,17 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
    */
   public function testGetOptions() {
     $wrapper = new StreamWrapper();
+    $wrapper->setUri('s3://bucket.example.com');
     $this->assertArraySubset(array('ACL' => 'public-read'), $wrapper->getOptions());
+  }
+
+  /**
+   * @expectedException \LogicException
+   * @covers \Drupal\amazons3\StreamWrapper::getOptions
+   */
+  public function testGetOptionsNoUri() {
+    $wrapper = new StreamWrapper();
+    $wrapper->getOptions();
   }
 
   /**
@@ -485,5 +497,76 @@ class StreamWrapperTest extends \PHPUnit_Framework_TestCase {
     $wrapper->setUri('s3://bucket.example.com/image.jpg');
     $url = Url::factory($wrapper->getExternalUrl());
     $this->assertEquals('s3.amazonaws.com', $url->getHost());
+  }
+
+  /**
+   * @covers \Drupal\amazons3\StreamWrapper::getOptions
+   * @covers \Drupal\amazons3\StreamWrapper::useRrs
+   */
+  public function testReducedRedundancyStorage() {
+    $config = StreamWrapperConfiguration::fromConfig([
+      'bucket' => 'bucket.example.com',
+      'caching' => FALSE,
+      'reducedRedundancyPaths' => new MatchablePaths(BasicPath::factory(array('*'))),
+    ]);
+
+    $wrapper = new StreamWrapper($config);
+    $wrapper->setUri('s3://bucket.example.com/styles/thumbnail/image.jpg');
+    $options = $wrapper->getOptions();
+
+    $this->assertArrayHasKey('StorageClass', $options);
+    $this->assertEquals('REDUCED_REDUNDANCY', $options['StorageClass']);
+  }
+
+  /**
+   * @covers \Drupal\amazons3\StreamWrapper::stream_open
+   * @covers \Drupal\amazons3\StreamWrapper::url_stat
+   */
+  public function testAutomaticUri() {
+    $wrapper = new StreamWrapper();
+    $path = NULL;
+    $uri = 's3://bucket.example.com/image.jpg';
+    $wrapper->stream_open($uri, 'r', 0, $path);
+    $this->assertEquals($uri, $wrapper->getUri());
+
+    // Instantiate the AWS service builder.
+    $config = array (
+      'includes' =>
+        array (
+          0 => '_aws',
+        ),
+      'services' =>
+        array (
+          'default_settings' =>
+            array (
+              'params' =>
+                array (
+                  'region' => 'us-east-1',
+                ),
+            ),
+          'cloudfront' =>
+            array (
+              'extends' => 'cloudfront',
+              'params' =>
+                array (
+                  'private_key' => 'change_me',
+                  'key_pair_id' => 'change_me',
+                ),
+            ),
+        ),
+      'credentials' => array('key' => 'placeholder', 'secret' => 'placeholder'),
+    );
+    $aws = \Aws\Common\Aws::factory($config);
+
+    // Configure the tests to use the instantiated AWS service builder
+    \Guzzle\Tests\GuzzleTestCase::setServiceBuilder($aws);
+    $client = $this->getServiceBuilder()->get('s3', true);
+
+    $this->setMockResponse($client, array(new Response(200)));
+
+    $wrapper = new StreamWrapper();
+    $wrapper->setClient($client);
+    $wrapper->url_stat($uri, 0);
+    $this->assertEquals($uri, $wrapper->getUri());
   }
 }

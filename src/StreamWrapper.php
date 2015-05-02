@@ -8,6 +8,7 @@ use Drupal\amazons3\Matchable\BasicPath;
 use Drupal\amazons3\Matchable\PresignedPath;
 use Guzzle\Cache\DoctrineCacheAdapter;
 use \Aws\S3\S3Client as AwsS3Client;
+use Guzzle\Http\Mimetypes;
 use Guzzle\Http\Url;
 
 /**
@@ -118,7 +119,6 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
       $this->setClient($name::factory());
     }
 
-    // @todo Add a static cache.
     if ($this->config->isCaching() && !static::$cache) {
       static::attachCache(
         new DoctrineCacheAdapter(new ChainCache([new ArrayCache(), new Cache()])),
@@ -236,12 +236,6 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
       $expiry = time() + $presigned->getTimeout();
     }
 
-    // Allow other modules to change the download link type.
-    // @todo Rather than passing an info array and a path, we should look into
-    // replacing the commandFactory and then letting it call a hook on any S3
-    // operation.
-    // $args = array_merge($args, module_invoke_all('amazons3_url_info', $local_path, $args));
-
     // @codeCoverageIgnoreStart
     if ($expiry && $this->config->isCloudFront()) {
       $url = $this->getCloudFrontUrl($path, $expiry);
@@ -355,9 +349,34 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * @return array
    */
   public function getOptions() {
+    if (!isset($this->uri)) {
+      throw new \LogicException('A URI must be set before calling getOptions().');
+    }
+
     $options = parent::getOptions();
     $options['ACL'] = 'public-read';
+
+    if ($this->useRrs()) {
+      $options['StorageClass'] = 'REDUCED_REDUNDANCY';
+    }
+
     return $options;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function stream_open($path, $mode, $options, &$opened_path) {
+    $this->uri = S3Url::factory($path);
+    return parent::stream_open($path, $mode, $options, $opened_path);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function url_stat($path, $flags) {
+    $this->uri = S3Url::factory($path);
+    return parent::url_stat($path, $flags);
   }
 
   /**
@@ -415,6 +434,17 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    */
   protected function usePresigned() {
     return $this->config->getPresignedPaths()->match($this->getLocalPath());
+  }
+
+  /**
+   * Find if the URL should be saved to Reduced Redundancy Storage.
+   *
+   * @return PresignedPath|bool
+   *   The matching PresignedPath if a presigned URL should be served, FALSE
+   *   otherwise.
+   */
+  protected function useRrs() {
+    return $this->config->getReducedRedundancyPaths()->match($this->getLocalPath());
   }
 
   /**
