@@ -178,45 +178,6 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   }
 
   /**
-   * Overrides stream_flush() to set the storage class.
-   *
-   * {@inheritdoc}
-   */
-  public function stream_flush()
-  {
-    if ($this->mode == 'r') {
-      return false;
-    }
-
-
-    $this->body->rewind();
-    $params = $this->params;
-    $params['Body'] = $this->body;
-
-    // Attempt to guess the ContentType of the upload based on the
-    // file extension of the key
-    if (!isset($params['ContentType']) &&
-      ($type = Mimetypes::getInstance()->fromFilename($params['Key']))
-    ) {
-      $params['ContentType'] = $type;
-    }
-
-    try {
-      // We may not have a URI set when this is called.
-      $this->uri = new S3Url($params['Bucket'], $params['Key']);
-
-      if ($this->useRrs()) {
-        $params['StorageClass'] = 'REDUCED_REDUNDANCY';
-      }
-      static::$client->putObject($params);
-      $this->clearStatInfo('s3://' . $params['Bucket'] . '/' . $params['Key']);
-      return true;
-    } catch (\Exception $e) {
-      return $this->triggerError($e->getMessage());
-    }
-  }
-
-  /**
    * {@inheritdoc}
    */
   function setUri($uri) {
@@ -388,9 +349,34 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * @return array
    */
   public function getOptions() {
+    if (!isset($this->uri)) {
+      throw new \LogicException('A URI must be set before calling getOptions().');
+    }
+
     $options = parent::getOptions();
     $options['ACL'] = 'public-read';
+
+    if ($this->useRrs()) {
+      $options['StorageClass'] = 'REDUCED_REDUNDANCY';
+    }
+
     return $options;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function stream_open($path, $mode, $options, &$opened_path) {
+    $this->uri = S3Url::factory($path);
+    return parent::stream_open($path, $mode, $options, $opened_path);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function url_stat($path, $flags) {
+    $this->uri = S3Url::factory($path);
+    return parent::url_stat($path, $flags);
   }
 
   /**
