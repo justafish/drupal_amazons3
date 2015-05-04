@@ -20,7 +20,17 @@ best to configure these settings in `$conf` variables in `settings.php`.
 To use signed CloudFront URLs, the CloudFront private key and ID are needed.
 The private key is a `.pem` file, and should be stored outside of your document
 root. Set `$conf['amazons3_cloudfront_private_key']` to the path of the private
-key and `$conf['amazons3_cloudfront_keypair_id']` to the key ID in settings.php to enable this feature.
+key and `$conf['amazons3_cloudfront_keypair_id']` to the key ID in settings.php
+to enable this feature.
+
+## Installation
+- Review the patch notes below. Nearly all sites will need the very first patch
+  against Drupal's image module.
+- Download and install Composer Manager and AmazonS3 Drupal modules.
+- Enable the AmazonS3 module. It's easiest to use drush so it will
+  automatically download the AWS SDK.
+- Configure the AmazonS3 credentials and other settings at
+  /admin/config/media/amazon
 
 ## Patches for full functionality
 
@@ -46,19 +56,6 @@ so they should be unlikely to cause problems.
   [to use correct S3 URLs](https://www.drupal.org/node/2479483#comment-9872933).
 - File Entity also needs to be patched
   [to work properly with the Media Internet module](https://www.drupal.org/node/2482757#comment-9889991).
-
-## Known Issues
-
-### Bucket names with "." in them
-Newer versions of OpenSSL also have issues with buckets with "." in their names. Bucket names with dots in them will use a slightly different path when delivering files over SSL. This is only relevant if you're not using a CNAME to alias a bucket to your own domain. See https://forums.aws.amazon.com/thread.jspa?threadID=69108&start=0&tstart=0#308166
-
-### Image Styles
-Image styles are delivered first through the private file system, which generates a derivative on S3 and is served from S3 thereafter. Don't expect it to be fast the first time!
-
-## Installation
-- Download and install Libraries, AWS SDK and AmazonS3 Drupal modules.
-- Configure AWS SDK at /admin/config/media/awssdk
-- Configure your bucket setttings at /admin/config/media/amazon
 
 ## Usage
 
