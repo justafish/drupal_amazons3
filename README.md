@@ -44,6 +44,8 @@ so they should be unlikely to cause problems.
   [for file uploads to work with an S3 bucket](https://www.drupal.org/node/2479473#comment-9872845).
 - File Entity needs to be patched
   [to use correct S3 URLs](https://www.drupal.org/node/2479483#comment-9872933).
+- File Entity also needs to be patched
+  [to work properly with the Media Internet module](https://www.drupal.org/node/2482757#comment-9889991).
 
 ## Known Issues
 
