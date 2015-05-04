@@ -358,14 +358,14 @@ class StreamWrapperConfiguration extends Collection {
     }
 
     // Torrent list.
-    $torrentPaths = variable_get('amazons3_torrents', $defaults['torrentPaths']);
+    $torrentPaths = variable_get('amazons3_torrents', array());
     $paths = BasicPath::factory($torrentPaths);
     if (!empty($paths)) {
       $config->setTorrentPaths(new MatchablePaths($paths));
     }
 
     // Presigned url-list.
-    $presigned_urls = variable_get('amazons3_presigned_urls', $defaults['presignedPaths']);
+    $presigned_urls = variable_get('amazons3_presigned_urls', array());
     $paths = array();
     foreach ($presigned_urls as $presigned_url) {
       $paths[] = new PresignedPath($presigned_url['pattern'], $presigned_url['timeout']);
@@ -387,14 +387,14 @@ class StreamWrapperConfiguration extends Collection {
     }*/
 
     // Force "save as" list.
-    $saveAsPaths = variable_get('amazons3_saveas', $defaults['saveAsPaths']);
+    $saveAsPaths = variable_get('amazons3_saveas', array());
     $paths = BasicPath::factory($saveAsPaths);
     if (!empty($paths)) {
       $config->setSaveAsPaths(new MatchablePaths($paths));
     }
 
     // Reduced Redundancy Storage.
-    $rrsPaths = variable_get('amazons3_rrs', $defaults['reducedRedundancyPaths']);
+    $rrsPaths = variable_get('amazons3_rrs', array());
     $paths = BasicPath::factory($rrsPaths);
     if (!empty($paths)) {
       $config->setReducedRedundancyPaths(new MatchablePaths($paths));
