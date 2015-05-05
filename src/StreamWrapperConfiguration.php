@@ -56,7 +56,7 @@ class StreamWrapperConfiguration extends Collection {
     }
 
     if ($missing = array_diff($required, array_keys(array_filter($data, function($item) {
-      return !is_null($item);
+      return !is_null($item) && $item !== '';
     })))) {
       throw new \InvalidArgumentException('Config is missing the following keys: ' . implode(', ', $missing));
     }

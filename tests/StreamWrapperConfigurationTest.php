@@ -169,4 +169,12 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
 
     StreamWrapperConfiguration::setVariableData(array());
   }
+
+  /**
+   * @covers Drupal\amazons3\StreamWrapperConfiguration::fromConfig
+   * @expectedException \InvalidArgumentException
+   */
+  public function testEmptyRequiredStringFails() {
+    StreamWrapperConfiguration::fromConfig(['bucket' => '']);
+  }
 }
