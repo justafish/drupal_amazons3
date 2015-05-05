@@ -2,6 +2,7 @@
 
 namespace Drupal\amazons3;
 
+use Drupal\amazons3\DrupalAdapter\Bootstrap;
 use Drupal\amazons3\Matchable\BasicPath;
 use Drupal\amazons3\Matchable\MatchablePaths;
 use Drupal\amazons3\Matchable\PresignedPath;
@@ -24,6 +25,7 @@ use Guzzle\Common\Collection;
  * @package Drupal\amazons3
  */
 class StreamWrapperConfiguration extends Collection {
+  use Bootstrap;
 
   /**
    * Generate a configuration object from an array.
@@ -319,27 +321,25 @@ class StreamWrapperConfiguration extends Collection {
    *
    * @return StreamWrapperConfiguration
    *   A StreamWrapperConfiguration object.
-   *
-   * @codeCoverageIgnore
    */
   public static function fromDrupalVariables() {
-    $config = self::fromConfig(array('bucket' => variable_get('amazons3_bucket', NULL)));
+    $config = self::fromConfig(array('bucket' => static::variable_get('amazons3_bucket', NULL)));
     $defaults = $config->defaults();
 
-    $config->setHostname(variable_get('amazons3_hostname', $defaults['hostname']));
+    $config->setHostname(static::variable_get('amazons3_hostname', $defaults['hostname']));
 
     // CNAME support for customizing S3 URLs.
-    if (variable_get('amazons3_cname', FALSE)) {
-      $domain = variable_get('amazons3_domain', $defaults['domain']);
+    if (static::variable_get('amazons3_cname', FALSE)) {
+      $domain = static::variable_get('amazons3_domain', $defaults['domain']);
       if (strlen($domain) > 0) {
         $config->setDomain($domain);
       }
       else {
         $config->setDomain($config->getBucket());
       }
-      if (variable_get('amazons3_cloudfront', $defaults['cloudFront'])) {
-        $path = variable_get('amazons3_cloudfront_private_key', $defaults['cloudFrontPrivateKey']);
-        $keyPairId = variable_get('amazons3_cloudfront_keypair_id', $defaults['cloudFrontKeyPairId']);
+      if (static::variable_get('amazons3_cloudfront', $defaults['cloudFront'])) {
+        $path = static::variable_get('amazons3_cloudfront_private_key', $defaults['cloudFrontPrivateKey']);
+        $keyPairId = static::variable_get('amazons3_cloudfront_keypair_id', $defaults['cloudFrontKeyPairId']);
         $config->setCloudFrontCredentials($path, $keyPairId);
         $config->serveWithCloudFront();
       }
@@ -349,23 +349,23 @@ class StreamWrapperConfiguration extends Collection {
     }
 
     // Check whether local file caching is turned on.
-    if (variable_get('amazons3_cache', $defaults['caching'])) {
+    if (static::variable_get('amazons3_cache', $defaults['caching'])) {
       $config->enableCaching();
-      $config->setCacheLifetime(variable_get('amazons3_cache_expiration', NULL));
+      $config->setCacheLifetime(static::variable_get('amazons3_cache_expiration', NULL));
     }
     else {
       $config->disableCaching();
     }
 
     // Torrent list.
-    $torrentPaths = variable_get('amazons3_torrents', array());
+    $torrentPaths = static::variable_get('amazons3_torrents', array());
     $paths = BasicPath::factory($torrentPaths);
     if (!empty($paths)) {
       $config->setTorrentPaths(new MatchablePaths($paths));
     }
 
     // Presigned url-list.
-    $presigned_urls = variable_get('amazons3_presigned_urls', array());
+    $presigned_urls = static::variable_get('amazons3_presigned_urls', array());
     $paths = array();
     foreach ($presigned_urls as $presigned_url) {
       $paths[] = new PresignedPath($presigned_url['pattern'], $presigned_url['timeout']);
@@ -374,27 +374,15 @@ class StreamWrapperConfiguration extends Collection {
       $config->setPresignedPaths(new MatchablePaths($paths));
     }
 
-    /**
-    foreach ($presigned_urls as $presigned_url) {
-      // Check for an explicit key.
-      $matches = array();
-      if (preg_match('/(.*)\|(.*)/', $presigned_url, $matches)) {
-        $config->presignedUrls[$matches[2]] = $matches[1];
-      }
-      else {
-        $config->presignedUrls[$presigned_url] = 60;
-      }
-    }*/
-
     // Force "save as" list.
-    $saveAsPaths = variable_get('amazons3_saveas', array());
+    $saveAsPaths = static::variable_get('amazons3_saveas', array());
     $paths = BasicPath::factory($saveAsPaths);
     if (!empty($paths)) {
       $config->setSaveAsPaths(new MatchablePaths($paths));
     }
 
     // Reduced Redundancy Storage.
-    $rrsPaths = variable_get('amazons3_rrs', array());
+    $rrsPaths = static::variable_get('amazons3_rrs', array());
     $paths = BasicPath::factory($rrsPaths);
     if (!empty($paths)) {
       $config->setReducedRedundancyPaths(new MatchablePaths($paths));

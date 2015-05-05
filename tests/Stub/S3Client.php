@@ -15,6 +15,19 @@ use Guzzle\Service\Command\Factory\AliasFactory;
 class S3Client extends \Drupal\amazons3\S3Client {
   use Bootstrap;
 
+  protected static $called = FALSE;
+
+  public static function resetCalled() {
+    static::$called = FALSE;
+  }
+
+  /**
+   * @return boolean
+   */
+  public static function isCalled() {
+    return static::$called;
+  }
+
   /**
    * Override setCommandFactory to use our stub.
    *
@@ -27,5 +40,13 @@ class S3Client extends \Drupal\amazons3\S3Client {
       'Guzzle\Service\Command\Factory\ServiceDescriptionFactory'
     );
     $client->setCommandFactory($default);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function factory($config = array()) {
+    static::$called = TRUE;
+    return parent::factory($config);
   }
 }

@@ -3,6 +3,7 @@
 namespace Drupal\amazons3;
 
 use Drupal\amazons3Test\Stub\S3Client as DrupalS3Client;
+use Drupal\amazons3Test\Stub\StreamWrapperConfiguration;
 use Guzzle\Http\Message\Response;
 use Guzzle\Tests\GuzzleTestCase;
 
@@ -12,9 +13,15 @@ class S3ClientTest extends GuzzleTestCase {
    * @covers Drupal\amazons3\S3Client::factory
    */
   public function testFactory() {
+    DrupalS3Client::setVariableData([
+      'amazons3_key' => 'placeholder',
+      'amazons3_secret' => 'placeholder',
+    ]);
     $client = DrupalS3Client::factory();
     $this->assertInstanceOf('Aws\S3\S3Client', $client);
     $this->assertEquals('placeholder', $client->getCredentials()->getAccessKeyId('placeholder'));
+
+    DrupalS3Client::setVariableData(array());
   }
 
   /**
