@@ -10,9 +10,35 @@
  */
 function amazons3_requirements($phase) {
   $t = get_t();
+  $requirements = array();
 
   if ($phase != 'runtime') {
     return array();
+  }
+
+  $error = NULL;
+  try {
+    $config = \Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables();
+    try {
+      $client = \Drupal\amazons3\S3Client::factory();
+      \Drupal\amazons3\S3Client::validateBucketExists($config->getBucket(), $client);
+    }
+    catch (\Drupal\amazons3\Exception\S3ConnectValidationException $e) {
+      $error = $t($e->getMessage());
+    }
+  }
+  catch (\InvalidArgumentException $e) {
+    $error = $t($e->getMessage());
+  }
+
+  if ($error) {
+    $configure = l($t('Configure'), 'admin/config/media/amazons3');
+    $requirements['amazons3_connection'] = array(
+      'severity' => REQUIREMENT_ERROR,
+      'title' => $t('AmazonS3 Configuration'),
+      'value' => $configure,
+      'description' => $error,
+    );
   }
 
   return $requirements;
