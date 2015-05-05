@@ -73,4 +73,25 @@ class S3ClientTest extends GuzzleTestCase {
     }
     $this->assertNull($exception, 'The bucket was validated to exist.');
   }
+
+  /**
+   * @covers \Drupal\amazons3\S3Client::factory
+   */
+  public function testCurlOptions() {
+    $client = DrupalS3Client::factory();
+    $curl = $client->getConfig('curl.options');
+    $this->assertArraySubset([CURLOPT_CONNECTTIMEOUT => 30], $curl);
+
+    $config = ['curl.options' => [ CURLOPT_CONNECTTIMEOUT => 10 ]];
+    $client = DrupalS3Client::factory($config);
+    $curl = $client->getConfig('curl.options');
+    $this->assertArraySubset([CURLOPT_CONNECTTIMEOUT => 10], $curl);
+
+    $config = ['curl.options' => [ CURLOPT_VERBOSE => TRUE ]];
+    $client = DrupalS3Client::factory($config);
+    $curl = $client->getConfig('curl.options');
+    $this->assertArraySubset([CURLOPT_CONNECTTIMEOUT => 30], $curl);
+    $this->assertArraySubset([CURLOPT_VERBOSE => TRUE], $curl);
+
+  }
 }
