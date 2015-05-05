@@ -26,8 +26,6 @@ class S3Client {
    * This set of commandAliases is a protected static with no getter on the
    * S3Client class.
    *
-   * @todo fix this upstream.
-   *
    * @var array
    */
   protected static $commandAliases = array(

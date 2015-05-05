@@ -154,8 +154,6 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * S3 has no support for file locking. If it's needed, it has to be
    * implemented at the application layer.
    *
-   * @todo Investigate supporting stream_lock() with Drupal's lock API.
-   *
    * @link https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectPUT.html
    *
    * @param string $operation

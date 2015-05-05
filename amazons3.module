@@ -322,7 +322,6 @@ function amazons3_field_widget_uri(array $field, array $instance, array $data = 
  */
 function amazons3_upload_location($uri_scheme, $bucket = NULL, $file_directory = NULL, array $data = array()) {
   if ($uri_scheme == 's3') {
-    // @todo Replace this with calls on an S3Url.
     $destination = $bucket;
 
     // If no bucket is specified, but this is an S3 URI, use the default bucket.
