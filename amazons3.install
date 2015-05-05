@@ -16,6 +16,11 @@ function amazons3_requirements($phase) {
     return array();
   }
 
+  // Composer Manager will throw a requirements warning for us.
+  if (!class_exists('Drupal\amazons3\StreamWrapperConfiguration')) {
+    return array();
+  }
+
   $error = NULL;
   try {
     $config = \Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables();

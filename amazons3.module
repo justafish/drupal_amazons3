@@ -23,7 +23,16 @@ function amazons3_stream_wrappers() {
     return array();
   }
 
-  composer_manager_register_autoloader();
+  // If the module has been enabled, but the user didn't update composer
+  // libraries, prevent failing entirely.
+  try {
+    composer_manager_register_autoloader();
+  }
+  catch (\RuntimeException $e) {
+    watchdog('amazons3', 'The Composer autoloader could not be registered. Run drush composer-rebuild and drush composer-manager update to update your vendor directory.');
+    watchdog_exception('amazons3', $e);
+    return;
+  }
 
   return array(
     's3' => array(
