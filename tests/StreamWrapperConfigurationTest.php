@@ -32,6 +32,14 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
   }
 
   /**
+   * @covers Drupal\amazons3\StreamWrapperConfiguration::fromConfig
+   * @expectedException \InvalidArgumentException
+   */
+  public function testMissingBucket() {
+    StreamWrapperConfiguration::fromConfig();
+  }
+
+  /**
    * @covers Drupal\amazons3\StreamWrapperConfiguration
    */
   public function testSetters() {
