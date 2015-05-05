@@ -11,6 +11,12 @@ namespace Drupal\amazons3Test\DrupalAdapter;
  */
 trait Bootstrap {
 
+  protected static $variableData = array();
+
+  public static function setVariableData(array $data) {
+    static::$variableData = $data;
+  }
+
   /**
    * Static version of variable_get() for testing.
    *
@@ -19,15 +25,12 @@ trait Bootstrap {
    * @return string
    */
   public static function variable_get($name, $default = NULL) {
-    switch ($name) {
-      case 'https':
-        return FALSE;
+    if (isset(static::$variableData[$name])) {
+      return static::$variableData[$name];
     }
 
-    if ($default) {
+    if (isset($default)) {
       return $default;
     }
-
-    return 'placeholder';
   }
 }

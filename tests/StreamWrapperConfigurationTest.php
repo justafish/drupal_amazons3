@@ -3,8 +3,12 @@
 namespace Drupal\amazons3Test;
 
 use Drupal\amazons3\Matchable\MatchablePaths;
-use Drupal\amazons3\StreamWrapperConfiguration;
+use Drupal\amazons3Test\Stub\StreamWrapperConfiguration;
 
+/**
+ * @class StreamWrapperConfigurationTest
+ * @package Drupal\amazons3Test
+ */
 class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
 
   /**
@@ -25,6 +29,14 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
   public function testFromConfigMissingExpiration() {
     $settings = array('bucket' => 'bucket', 'caching' => TRUE);
     $config = StreamWrapperConfiguration::fromConfig($settings);
+  }
+
+  /**
+   * @covers Drupal\amazons3\StreamWrapperConfiguration::fromConfig
+   * @expectedException \InvalidArgumentException
+   */
+  public function testMissingBucket() {
+    StreamWrapperConfiguration::fromConfig();
   }
 
   /**
@@ -107,5 +119,62 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
   public function testDefaultHostname() {
     $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket'));
     $this->assertEquals('s3.amazonaws.com', $config->getDomain());
+  }
+
+  /**
+   * @covers Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables
+   */
+  public function testFromDrupalVariables() {
+    StreamWrapperConfiguration::setVariableData([
+      'amazons3_bucket' => 'default.example.com',
+      'amazons3_hostname' => 'api.example.com',
+      'amazons3_cname' => TRUE,
+      'amazons3_domain' => 'static.example.com',
+      'amazons3_cloudfront' => TRUE,
+      'amazons3_cloudfront_private_key' => '/dev/null',
+      'amazons3_cloudfront_keypair_id' => 'example',
+      'amazons3_cache' => TRUE,
+      'amazons3_torrents' => array('.*'),
+      'amazons3_presigned_urls' => array(array('pattern' => '.*', 'timeout' => '60')),
+      'amazons3_saveas' => array('.*'),
+      'amazons3_rrs' => array('.*'),
+    ]);
+
+    $config = StreamWrapperConfiguration::fromDrupalVariables();
+    $this->assertEquals($config->getBucket(), 'default.example.com');
+    $this->assertEquals($config->getHostname(), 'api.example.com');
+    $this->assertEquals($config->getDomain(), 'static.example.com');
+    $this->assertEquals($config->isCloudFront(), TRUE);
+    $this->assertInstanceOf('Aws\CloudFront\CloudFrontClient', $config->getCloudFront());
+    $this->assertEquals($config->isCaching(), TRUE);
+    $this->assertInstanceOf('Drupal\amazons3\Matchable\MatchablePaths', $config->getTorrentPaths());
+    $this->assertInstanceOf('Drupal\amazons3\Matchable\MatchablePaths', $config->getPresignedPaths());
+    $this->assertInstanceOf('Drupal\amazons3\Matchable\MatchablePaths', $config->getSaveAsPaths());
+    $this->assertInstanceOf('Drupal\amazons3\Matchable\MatchablePaths', $config->getReducedRedundancyPaths());
+
+    StreamWrapperConfiguration::setVariableData([
+      'amazons3_bucket' => 'default.example.com',
+      'amazons3_cname' => TRUE,
+      'amazons3_cache' => FALSE,
+    ]);
+    $config = StreamWrapperConfiguration::fromDrupalVariables();
+    $this->assertEquals($config->getBucket(), $config->getDomain());
+    $this->assertFalse($config->isCaching());
+
+    StreamWrapperConfiguration::setVariableData([
+      'amazons3_bucket' => 'default.example.com',
+    ]);
+    $config = StreamWrapperConfiguration::fromDrupalVariables();
+    $this->assertEquals('s3.amazonaws.com', $config->getDomain());
+
+    StreamWrapperConfiguration::setVariableData(array());
+  }
+
+  /**
+   * @covers Drupal\amazons3\StreamWrapperConfiguration::fromConfig
+   * @expectedException \InvalidArgumentException
+   */
+  public function testEmptyRequiredStringFails() {
+    StreamWrapperConfiguration::fromConfig(['bucket' => '']);
   }
 }

@@ -10,19 +10,41 @@
  */
 function amazons3_requirements($phase) {
   $t = get_t();
+  $requirements = array();
 
   if ($phase != 'runtime') {
     return array();
   }
 
-  // Check for allow_url_fopen.
-  $fopen_allowed = ini_get('allow_url_fopen');
-  $requirements['amazons3_allow_url_fopen'] = array(
-    'severity' => $fopen_allowed ? REQUIREMENT_OK : REQUIREMENT_ERROR,
-    'title' => $t('AmazonS3'),
-    'value' => 'allow_url_fopen',
-    'description' => $fopen_allowed ? $t('The PHP allow_url_fopen setting is on.') : $t('Amazon S3 module requires that the allow_url_fopen setting be turned on in php.ini.'),
-  );
+  // Composer Manager will throw a requirements warning for us.
+  if (!class_exists('Drupal\amazons3\StreamWrapperConfiguration')) {
+    return array();
+  }
+
+  $error = NULL;
+  try {
+    $config = \Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables();
+    try {
+      $client = \Drupal\amazons3\S3Client::factory();
+      \Drupal\amazons3\S3Client::validateBucketExists($config->getBucket(), $client);
+    }
+    catch (\Drupal\amazons3\Exception\S3ConnectValidationException $e) {
+      $error = $t($e->getMessage());
+    }
+  }
+  catch (\InvalidArgumentException $e) {
+    $error = $t($e->getMessage());
+  }
+
+  if ($error) {
+    $configure = l($t('Configure'), 'admin/config/media/amazons3');
+    $requirements['amazons3_connection'] = array(
+      'severity' => REQUIREMENT_ERROR,
+      'title' => $t('AmazonS3 Configuration'),
+      'value' => $configure,
+      'description' => $error,
+    );
+  }
 
   return $requirements;
 }

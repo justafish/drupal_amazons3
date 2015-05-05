@@ -7,8 +7,9 @@ use Aws\S3\S3Client;
 use Drupal\amazons3\Matchable\BasicPath;
 use Drupal\amazons3\Matchable\MatchablePaths;
 use Drupal\amazons3\Matchable\PresignedPath;
+use Drupal\amazons3Test\Stub\S3Client as DrupalS3Client;
 use Drupal\amazons3Test\Stub\StreamWrapper;
-use Drupal\amazons3\StreamWrapperConfiguration;
+use Drupal\amazons3Test\Stub\StreamWrapperConfiguration;
 use Guzzle\Http\Message\Response;
 use Guzzle\Http\Url;
 use Guzzle\Tests\GuzzleTestCase;
@@ -317,9 +318,9 @@ class StreamWrapperTest extends GuzzleTestCase {
   public function testSetS3ClientClass() {
     StreamWrapper::setS3ClientClass('Drupal\amazons3Test\Stub\S3Client');
     StreamWrapper::setClient(NULL);
-    $wrapper = new StreamWrapper();
-    $credentials = $wrapper->getClient()->getCredentials();
-    $this->assertEquals('placeholder', $credentials->getAccessKeyId());
+    DrupalS3Client::resetCalled();
+    new StreamWrapper();
+    $this->assertTrue(DrupalS3Client::isCalled());
   }
 
   /**
