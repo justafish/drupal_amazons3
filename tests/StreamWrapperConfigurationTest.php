@@ -118,7 +118,7 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
    */
   public function testDefaultHostname() {
     $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket'));
-    $this->assertEquals('s3.amazonaws.com', $config->getDomain());
+    $this->assertEquals('bucket.s3.amazonaws.com', $config->getDomain());
   }
 
   /**

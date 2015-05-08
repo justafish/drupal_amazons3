@@ -63,6 +63,12 @@ class StreamWrapperConfiguration extends Collection {
 
     if (!$data['domain']) {
       $data['domain'] = 's3.amazonaws.com';
+
+      // If the bucket does not contain dots, the S3 SDK generates URLs that
+      // use the bucket name in the host.
+      if (strpos($data['bucket'], '.') === FALSE) {
+        $data['domain'] = $data['bucket'] . '.' . $data['domain'];
+      }
     }
 
     return new static($data);
