@@ -57,11 +57,11 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
     $config->disableCaching();
     $this->assertFalse($config->isCaching());
 
-    $config->setDomain('api.example.com');
-    $this->assertEquals('api.example.com', $config->getDomain());
+    $config->setDomain('cdn.example.com');
+    $this->assertEquals('cdn.example.com', $config->getDomain());
 
-    $config->setHostname('cdn.example.com');
-    $this->assertEquals('cdn.example.com', $config->getHostname());
+    $config->setHostname('api.example.com');
+    $this->assertEquals('api.example.com', $config->getHostname());
 
     $config->serveWithCloudFront();
     $this->assertTrue($config->isCloudFront());
