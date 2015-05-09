@@ -521,6 +521,7 @@ class StreamWrapperTest extends GuzzleTestCase {
 
   /**
    * @covers \Drupal\amazons3\StreamWrapper::stream_open
+   * @covers \Drupal\amazons3\StreamWrapper::mkdir
    * @covers \Drupal\amazons3\StreamWrapper::url_stat
    */
   public function testAutomaticUri() {
@@ -563,11 +564,16 @@ class StreamWrapperTest extends GuzzleTestCase {
     \Guzzle\Tests\GuzzleTestCase::setServiceBuilder($aws);
     $client = $this->getServiceBuilder()->get('s3', true);
 
-    $this->setMockResponse($client, array(new Response(200)));
+    // The 404 is for the first check to mkdir() that checks to see if a
+    // directory exists.
+    $this->setMockResponse($client, array(new Response(200), new Response(404), new Response(200)));
 
     $wrapper = new StreamWrapper();
     $wrapper->setClient($client);
     $wrapper->url_stat($uri, 0);
     $this->assertEquals($uri, $wrapper->getUri());
+
+    $wrapper->mkdir('s3://bucket.example.com/directory', 0, 0);
+    $this->assertEquals('s3://bucket.example.com/directory', $wrapper->getUri());
   }
 }

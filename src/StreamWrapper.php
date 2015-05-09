@@ -23,6 +23,13 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   use DrupalAdapter\FileMimetypes;
 
   /**
+   * The base domain of S3.
+   *
+   * @const string
+   */
+  const S3_API_DOMAIN = 's3.amazonaws.com';
+
+  /**
    * The path to the image style generation callback.
    *
    * If this is changed, be sure to update amazons3_menu() as well.
@@ -364,8 +371,16 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   /**
    * {@inheritdoc}
    */
+  public function mkdir($path, $mode, $options) {
+    $this->setUri($path);
+    return parent::mkdir($path, $mode, $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function stream_open($path, $mode, $options, &$opened_path) {
-    $this->uri = S3Url::factory($path);
+    $this->setUri($path);
     return parent::stream_open($path, $mode, $options, $opened_path);
   }
 
@@ -373,7 +388,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    * {@inheritdoc}
    */
   public function url_stat($path, $flags) {
-    $this->uri = S3Url::factory($path);
+    $this->setUri($path);
     return parent::url_stat($path, $flags);
   }
 
@@ -452,7 +467,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
    *   The URL to modify.
    */
   protected function injectCname($url) {
-    if ($this->config->getDomain() != $url->getHost()) {
+    if (strpos($url->getHost(), $this->config->getDomain()) === FALSE) {
       $url->setHost($this->config->getDomain());
     }
   }
