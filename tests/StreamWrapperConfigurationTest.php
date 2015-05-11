@@ -57,11 +57,11 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
     $config->disableCaching();
     $this->assertFalse($config->isCaching());
 
-    $config->setDomain('api.example.com');
-    $this->assertEquals('api.example.com', $config->getDomain());
+    $config->setDomain('cdn.example.com');
+    $this->assertEquals('cdn.example.com', $config->getDomain());
 
-    $config->setHostname('cdn.example.com');
-    $this->assertEquals('cdn.example.com', $config->getHostname());
+    $config->setHostname('api.example.com');
+    $this->assertEquals('api.example.com', $config->getHostname());
 
     $config->serveWithCloudFront();
     $this->assertTrue($config->isCloudFront());
@@ -123,6 +123,7 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
 
   /**
    * @covers Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables
+   * @covers Drupal\amazons3\StreamWrapperConfiguration::getS3Domain
    */
   public function testFromDrupalVariables() {
     StreamWrapperConfiguration::setVariableData([
@@ -161,17 +162,27 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
     $this->assertEquals($config->getBucket(), $config->getDomain());
     $this->assertFalse($config->isCaching());
 
+    // When the bucket has a dot, check that the bucket is not in the domain.
     StreamWrapperConfiguration::setVariableData([
       'amazons3_bucket' => 'default.example.com',
     ]);
     $config = StreamWrapperConfiguration::fromDrupalVariables();
     $this->assertEquals('s3.amazonaws.com', $config->getDomain());
 
+    // When the bucket does not have a dot, check the bucket is in the
+    // subdomain.
+    StreamWrapperConfiguration::setVariableData([
+      'amazons3_bucket' => 'bucket',
+    ]);
+    $config = StreamWrapperConfiguration::fromDrupalVariables();
+    $this->assertEquals('bucket.s3.amazonaws.com', $config->getDomain());
+
     StreamWrapperConfiguration::setVariableData(array());
   }
 
   /**
    * @covers Drupal\amazons3\StreamWrapperConfiguration::fromConfig
+   * @covers Drupal\amazons3\StreamWrapperConfiguration::getS3Domain
    * @expectedException \InvalidArgumentException
    */
   public function testEmptyRequiredStringFails() {

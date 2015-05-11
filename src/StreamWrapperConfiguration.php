@@ -62,13 +62,7 @@ class StreamWrapperConfiguration extends Collection {
     }
 
     if (!$data['domain']) {
-      $data['domain'] = 's3.amazonaws.com';
-
-      // If the bucket does not contain dots, the S3 SDK generates URLs that
-      // use the bucket name in the host.
-      if (strpos($data['bucket'], '.') === FALSE) {
-        $data['domain'] = $data['bucket'] . '.' . $data['domain'];
-      }
+      $data['domain'] = self::getS3Domain($data['bucket']);
     }
 
     return new static($data);
@@ -103,6 +97,25 @@ class StreamWrapperConfiguration extends Collection {
       'bucket',
     );
     return $required;
+  }
+
+  /**
+   * Get the S3 domain for a bucket.
+   *
+   * @param string $bucket
+   *   The bucket to get the domain for.
+   * @return string
+   *   The S3 domain, such as bucket.s3.amazonaws.com.
+   */
+  protected static function getS3Domain($bucket) {
+    $domain = StreamWrapper::S3_API_DOMAIN;
+    // If the bucket does not contain dots, the S3 SDK generates URLs that
+    // use the bucket name in the host.
+    if (strpos($bucket, '.') === FALSE) {
+      $domain = $bucket . '.' . $domain;
+    }
+
+    return $domain;
   }
 
 
@@ -353,7 +366,7 @@ class StreamWrapperConfiguration extends Collection {
       }
     }
     else {
-      $config->setDomain('s3.amazonaws.com');
+      $config->setDomain(static::getS3Domain($config->getBucket()));
     }
 
     // Check whether local file caching is turned on.
