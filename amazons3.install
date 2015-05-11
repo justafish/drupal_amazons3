@@ -167,7 +167,7 @@ function amazons3_update_7102(&$sandbox) {
 }
 
 /**
- * Delete the HTTPS paths variable as all files are now served with HTTPS.
+ * Enable composer, add a bucket to all URIs, and delete the HTTPS variable.
  */
 function amazons3_update_7200() {
   if (!module_enable(array('composer_manager'))) {
@@ -178,6 +178,15 @@ function amazons3_update_7200() {
   if (function_exists('drush_composer_manager_write_if_changed')) {
     drush_composer_manager_write_if_changed();
   }
+
+  $bucket = variable_get('amazons3_bucket');
+  db_update('file_managed')
+    ->condition('uri', 's3://%', 'LIKE')
+    ->expression('uri', 'REPLACE(uri, :protocol, :bucket)', array(
+      ':protocol' => 's3://',
+      ':bucket' => "s3://$bucket/",
+    ))
+    ->execute();
 
   variable_del('amazons3_https');
 }
