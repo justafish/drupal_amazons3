@@ -31,7 +31,12 @@ function amazons3_stream_wrappers() {
   catch (\RuntimeException $e) {
     watchdog('amazons3', 'The Composer autoloader could not be registered. Run drush composer-rebuild and drush composer-manager update to update your vendor directory.');
     watchdog_exception('amazons3', $e);
-    return;
+    return array();
+  }
+
+  if (!class_exists('Drupal\amazons3\StreamWrapper')) {
+    watchdog('amazons3', 'The AmazonS3 StreamWrapper class is missing. Make sure all module updates have run. Otherwise, run drush composer-rebuild and drush composer-manager update to update your vendor directory.');
+    return array();
   }
 
   return array(
