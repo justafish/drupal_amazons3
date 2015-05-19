@@ -7,12 +7,15 @@ php:
   - nightly
 
 matrix:
-    allow_failures:
-        - php: hhvm
-        - php: nightly
+  allow_failures:
+    - php: hhvm
+    - php: nightly
+  include:
+    - php: 5.4
+      env: dependencies=lowest
 
 install:
-  - composer install --no-interaction
+  - if [ "$dependencies" = "lowest" ]; then composer update --prefer-lowest --prefer-stable -n; else composer update -n; fi;
 
 after_script:
   - php vendor/bin/coveralls
