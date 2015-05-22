@@ -125,6 +125,18 @@ function amazons3_image_deliver() {
     }
 
     $lock_name = 'amazons3_image_style_deliver:' . drupal_hash_base64($destination->getKey());
+
+    // There are a few interacting bugs between PHP's GD library, remote stream
+    // wrappers like S3 that don't support fseek(), and the Guzzle
+    // implementation details behind seekable streams. With some images that
+    // require seeking to load all EXIF metadata, getimagesize() returns FALSE
+    // incorrectly. We work around this by copying the file locally instead of
+    // directly referencing the s3:// URI.
+    //
+    // https://github.com/aws/aws-sdk-php/issues/587
+    $local_source = drupal_tempnam('temporary://', 'amazons3-image-source.');
+    file_unmanaged_copy($source, $local_source, FILE_EXISTS_REPLACE);
+
     $destination_temp = 'temporary://amazons3/' . $destination->getKey();
 
     // Prevent cache stampedes.
@@ -133,11 +145,13 @@ function amazons3_image_deliver() {
     }
 
     // Generate the derivative.
-    if (!image_style_create_derivative($style, $source, $destination_temp)) {
+    if (!image_style_create_derivative($style, $local_source, $destination_temp)) {
       // Something went horribly wrong, but all we have is a FALSE return. Throw
       // an exception with something useful.
       throw new \Exception('Amazon S3 was unable to create an image style derivative. Check the temporary directory configuration and permissions.');
     }
+    file_unmanaged_delete($local_source);
+
     lock_release($lock_name);
 
     // Register a shutdown function to upload the image to S3.
