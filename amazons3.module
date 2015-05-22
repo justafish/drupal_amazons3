@@ -138,6 +138,11 @@ function amazons3_image_deliver() {
       // an exception with something useful.
       throw new \Exception('Amazon S3 was unable to create an image style derivative. Check the temporary directory configuration and permissions.');
     }
+
+    // We need to manage our temporary file so it is cleaned by system_cron().
+    $file = amazons3_file_create_object($destination_temp);
+    file_save($file);
+
     lock_release($lock_name);
 
     // Register a shutdown function to upload the image to S3.
@@ -164,6 +169,26 @@ function amazons3_image_deliver() {
   /** @var \Drupal\amazons3\StreamWrapper $wrapper */
   $wrapper = file_stream_wrapper_get_instance_by_uri($destination);
   drupal_goto($wrapper->getExternalUrl(), array(), 301);
+}
+
+/**
+ * Create a file object.
+ *
+ * @param string $uri
+ *   The URI of the object to create.
+ *
+ * @return \stdClass
+ *   A file object suitable to use with file_save().
+ */
+function amazons3_file_create_object($uri) {
+  $file = new stdClass();
+  $file->fid = NULL;
+  $file->uri = $uri;
+  $file->filename = drupal_basename($uri);
+  $file->filemime = file_get_mimetype($file->uri);
+  $file->uid = 0;
+  $file->status = 0;
+  return $file;
 }
 
 /**
