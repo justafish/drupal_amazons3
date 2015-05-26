@@ -369,30 +369,6 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
   }
 
   /**
-   * {@inheritdoc}
-   */
-  public function mkdir($path, $mode, $options) {
-    $this->setUri($path);
-    return parent::mkdir($path, $mode, $options);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function stream_open($path, $mode, $options, &$opened_path) {
-    $this->setUri($path);
-    return parent::stream_open($path, $mode, $options, $opened_path);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function url_stat($path, $flags) {
-    $this->setUri($path);
-    return parent::url_stat($path, $flags);
-  }
-
-  /**
    * Return the basename for this URI.
    *
    * @return string
@@ -523,5 +499,96 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     );
     $this->injectCname($url);
     return $url;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function unlink($path) {
+    $this->setUri($path);
+    return parent::unlink($path);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function mkdir($path, $mode, $options) {
+    $this->setUri($path);
+    return parent::mkdir($path, $mode, $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function stream_open($path, $mode, $options, &$opened_path) {
+    $this->setUri($path);
+    return parent::stream_open($path, $mode, $options, $opened_path);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function url_stat($path, $flags) {
+    $this->setUri($path);
+    return parent::url_stat($path, $flags);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function rmdir($path, $options) {
+    $this->setUri($path);
+    return parent::rmdir($path, $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function dir_opendir($path, $options) {
+    $this->setUri($path);
+    return parent::dir_opendir($path, $options);
+  }
+
+  /**
+   * Override rename() to handle setting the URI on move.
+   *
+   * {@inheritdoc}
+   */
+  public function rename($path_from, $path_to) {
+    $this->setUri($path_from);
+    $partsFrom = $this->getParams($path_from);
+
+    $this->setUri($path_to);
+    $partsTo = $this->getParams($path_to);
+
+    // We ignore testing this block since it is copied directly from the parent
+    // method which is covered by the AWS SDK tests.
+    // @codeCoverageIgnoreStart
+    $this->clearStatInfo($path_from);
+    $this->clearStatInfo($path_to);
+
+    if (!$partsFrom['Key'] || !$partsTo['Key']) {
+      return $this->triggerError('The Amazon S3 stream wrapper only supports copying objects');
+    }
+
+    try {
+      // Copy the object and allow overriding default parameters if desired, but by default copy metadata
+      static::$client->copyObject($this->getOptions() + array(
+          'Bucket' => $partsTo['Bucket'],
+          'Key' => $partsTo['Key'],
+          'CopySource' => '/' . $partsFrom['Bucket'] . '/' . rawurlencode($partsFrom['Key']),
+          'MetadataDirective' => 'COPY'
+        ));
+      // Delete the original object
+      static::$client->deleteObject(array(
+          'Bucket' => $partsFrom['Bucket'],
+          'Key'    => $partsFrom['Key']
+        ) + $this->getOptions());
+    } catch (\Exception $e) {
+      return $this->triggerError($e->getMessage());
+    }
+    // @codeCoverageIgnoreEnd
+
+    return true;
   }
 }
