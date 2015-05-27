@@ -51,7 +51,7 @@ so they should be unlikely to cause problems.
 - Drupal's <code>file.inc</code> needs to be
   [patched to add an alter hook](https://www.drupal.org/node/2479523#comment-9873165).
 - Media module needs to be patched
-  [for file uploads to work with an S3 bucket](https://www.drupal.org/node/2479473#comment-9872845).
+  [for file uploads to work with an S3 bucket](https://www.drupal.org/files/issues/2479473.5-upload-params.patch).
 - File Entity needs to be patched
   [to use correct S3 URLs](https://www.drupal.org/node/2479483#comment-9872933).
 - File Entity also needs to be patched
