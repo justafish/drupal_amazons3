@@ -63,10 +63,6 @@ so they should be unlikely to cause problems.
 - Use AmazonS3 instead of the public file system (although there are a few issues due to core hardcoding the use of public:// in a few places e.g. aggregated CSS and JS). Go to /admin/config/media/file-system and set the default download method to Amazon.
 - When using Features to export field definitions, the Upload destination is included. If you want to override this (for example, in a multi-environment workflow), use the 'amazons3_file_uri_scheme_override' variable. See amazons3_field_default_field_bases_alter() for documentation.
 
-## CORS Upload
-See [http://drupal.org/project/amazons3_cors](http://drupal.org/project/amazons3_cors)
-
-
 ## API
 You can modify the generated URL and it's properties, this is very useful for setting Cache-Control and Expires headers (as long as you aren't using CloudFront).
 
@@ -85,3 +81,8 @@ using PHPUnit, you can integrate test results into your IDE of choice.
 In PHPStorm, it's easiest to configure PHPUnit to use the autoloader generated
 in vendor/autoload.php. It's also good to mark the vendor directory as
 excluded, if you already have a vendor directory indexed from composer_manager.
+
+# Related Modules
+
+ * [AmazonS3 Sync](https://www.drupal.org/node/2506333)
+ * [CORS Upload](http://drupal.org/project/amazons3_cors)
