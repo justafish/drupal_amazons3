@@ -39,6 +39,9 @@ function amazons3_stream_wrappers() {
     return array();
   }
 
+  // getimagesize() calls require the stream to be seekable.
+  stream_context_set_default(['s3' => ['seekable' => TRUE]]);
+
   return array(
     's3' => array(
       'name' => 'Amazon S3',

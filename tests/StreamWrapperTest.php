@@ -520,9 +520,13 @@ class StreamWrapperTest extends GuzzleTestCase {
   }
 
   /**
-   * @covers \Drupal\amazons3\StreamWrapper::stream_open
+   * @covers \Drupal\amazons3\StreamWrapper::dir_opendir
    * @covers \Drupal\amazons3\StreamWrapper::mkdir
+   * @covers \Drupal\amazons3\StreamWrapper::rename
+   * @covers \Drupal\amazons3\StreamWrapper::rmdir
+   * @covers \Drupal\amazons3\StreamWrapper::stream_open
    * @covers \Drupal\amazons3\StreamWrapper::url_stat
+   * @covers \Drupal\amazons3\StreamWrapper::unlink
    */
   public function testAutomaticUri() {
     $wrapper = new StreamWrapper();
@@ -573,7 +577,32 @@ class StreamWrapperTest extends GuzzleTestCase {
     $wrapper->url_stat($uri, 0);
     $this->assertEquals($uri, $wrapper->getUri());
 
-    $wrapper->mkdir('s3://bucket.example.com/directory', 0, 0);
-    $this->assertEquals('s3://bucket.example.com/directory', $wrapper->getUri());
+    $dir_uri = 's3://bucket.example.com/directory';
+    $wrapper->mkdir($dir_uri, 0, 0);
+    $this->assertEquals($dir_uri, $wrapper->getUri());
+
+    $this->setMockResponse($client, array(new Response(200)));
+    $wrapper = new StreamWrapper();
+    $wrapper->setClient($client);
+    $wrapper->dir_opendir($dir_uri, "");
+    $this->assertEquals($dir_uri, $wrapper->getUri());
+
+    $this->setMockResponse($client, array(new Response(200)));
+    $wrapper = new StreamWrapper();
+    $wrapper->setClient($client);
+    $wrapper->rmdir($dir_uri, 0);
+    $this->assertEquals($dir_uri, $wrapper->getUri());
+
+    $this->setMockResponse($client, array(new Response(200)));
+    $wrapper = new StreamWrapper();
+    $wrapper->setClient($client);
+    $wrapper->unlink($uri);
+    $this->assertEquals($uri, $wrapper->getUri());
+
+    $this->setMockResponse($client, array(new Response(200), new Response(200)));
+    $wrapper = new StreamWrapper();
+    $wrapper->setClient($client);
+    $wrapper->rename($uri, 's3://bucket.example.com/renamed.jpg');
+    $this->assertEquals('s3://bucket.example.com/renamed.jpg', $wrapper->getUri());
   }
 }
