@@ -211,6 +211,17 @@ class StreamWrapperTest extends GuzzleTestCase {
   }
 
   /**
+   * Test that we can call getExternalUrl() when no key has been specified.
+   *
+   * @covers \Drupal\amazons3\StreamWrapper::getExternalUrl
+   */
+  public function testExternalUriEmptyPathSegments() {
+    $wrapper = new StreamWrapper();
+    $wrapper->setUri('s3://bucket.example.com/');
+    $this->assertEquals('https://s3.amazonaws.com/bucket.example.com', $wrapper->getExternalUrl());
+  }
+
+  /**
    * Test getting a mime type.
    *
    * @covers \Drupal\amazons3\StreamWrapper::getMimeType
