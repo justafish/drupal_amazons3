@@ -57,6 +57,17 @@ so they should be unlikely to cause problems.
 - File Entity also needs to be patched
   [to work properly with the Media Internet module](https://www.drupal.org/node/2482757#comment-9889991).
 
+## IMCE
+
+To use IMCE to manage files in S3:
+
+- Drupal's <code>file.inc</code> needs to be
+  [patched to add an alter hook](https://www.drupal.org/node/2479523#comment-9873165).
+  This is the same patch as the above patch for Media module.
+- IMCE must be at least a -dev release after August 9th, 2015. Or, apply
+  [this patch to call the above alter hook](http://cgit.drupalcode.org/imce/commit/?id=52dfd14).
+
+
 ## Usage
 
 - Change individual fields to upload to S3 in the field settings
