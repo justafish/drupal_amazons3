@@ -111,24 +111,24 @@ function amazons3_image_deliver() {
   $key = implode('/', $path);
 
   $source = new S3Url($bucket, $key);
-  $destination = $source->getImageStyleUrl($style_name);
+  $destination_s3 = $source->getImageStyleUrl($style_name);
 
   // Check that the image style token is valid.
-  if (!variable_get('image_allow_insecure_derivatives', FALSE) || strpos($destination->getKey(), 'styles/') === 0) {
+  if (!variable_get('image_allow_insecure_derivatives', FALSE) || strpos($destination_s3->getKey(), 'styles/') === 0) {
     $valid = isset($_GET[IMAGE_DERIVATIVE_TOKEN]) && $_GET[IMAGE_DERIVATIVE_TOKEN] === image_style_path_token($style['name'], (string) $source);
     if (!$valid) {
       return MENU_ACCESS_DENIED;
     }
   }
 
-  if (!file_exists($destination)) {
+  if (!file_exists($destination_s3)) {
     // If there is no source image we can 404 early.
     if (!file_exists($source)) {
       return MENU_NOT_FOUND;
     }
 
-    $lock_name = 'amazons3_image_style_deliver:' . drupal_hash_base64($destination->getKey());
-    $destination_temp = 'temporary://amazons3/' . $destination->getKey();
+    $lock_name = 'amazons3_image_style_deliver:' . drupal_hash_base64($destination_s3->getKey());
+    $destination_temp = 'temporary://amazons3/' . $destination_s3->getKey();
 
     // Prevent cache stampedes.
     if (!lock_acquire($lock_name)) {
@@ -138,46 +138,8 @@ function amazons3_image_deliver() {
     // If the temporary file exists, we assume another thread has generated it
     // and we can transfer it directly.
     if (!file_exists($destination_temp)) {
-      // Before we create the file, we need to see if a row exists in
-      // {files_managed}. This can happen when a temporary directory is cleared
-      // by a server reboot or manually by a system administrator.
-      $q = new EntityFieldQuery();
-      $q->entityCondition('entity_type', 'file')
-        ->propertyCondition('uri', $destination_temp);
-      $results = $q->execute();
-      if (!empty($results['file'])) {
-        $file = reset($results['file']);
-        $file = file_load($file->fid);
-        file_delete($file);
-      }
+      $image = _amazons3_generate_image_style($source, $style, $destination_temp, $destination_s3);
 
-      // Generate the derivative.
-      if (!image_style_create_derivative($style, $source, $destination_temp)) {
-        // Something went horribly wrong, but all we have is a FALSE return. Throw
-        // an exception with something useful.
-        throw new \Exception('Amazon S3 was unable to create an image style derivative. Check the temporary directory configuration and permissions.');
-      }
-
-      // We need to manage our temporary file so it is cleaned by system_cron().
-      $file = amazons3_file_create_object($destination_temp);
-      file_save($file);
-
-      // Register a shutdown function to upload the image to S3.
-      $image = amazons3_image_load($destination_temp);
-      register_shutdown_function(function() use ($image, $destination) {
-        // We have to call both of these to actually flush the image.
-        ob_end_flush();
-        flush();
-
-        // file_unmanaged_copy() will not create any nested directories if
-        // needed.
-        $directory = drupal_dirname($destination);
-        if (!file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-          watchdog('amazons3', 'Failed to create style directory: %directory', array('%directory' => $directory), WATCHDOG_ERROR);
-        }
-
-        file_unmanaged_copy($image->source, $destination);
-      });
     }
     else {
       $image = amazons3_image_load($destination_temp);
@@ -191,8 +153,71 @@ function amazons3_image_deliver() {
 
   // If the file exists on S3, send a permanent redirect.
   /** @var \Drupal\amazons3\StreamWrapper $wrapper */
-  $wrapper = file_stream_wrapper_get_instance_by_uri($destination);
+  $wrapper = file_stream_wrapper_get_instance_by_uri($destination_s3);
   drupal_goto($wrapper->getExternalUrl(), array(), 301);
+}
+
+/**
+ * Generate an image style derivative and upload it to S3.
+ *
+ * @param S3Url $source
+ *   The URL of the source image stored in S3.
+ * @param string $style
+ *   The name of the image style to generate the derivative for.
+ * @param string $destination_temp
+ *   The temporary:// path to save the generated image in.
+ * @param S3Url $destination_s3
+ *
+ * @throws \Exception
+ *   Thrown if image_style_create_derivative() failed.
+ *
+ * @return \stdClass
+ *   The generated image object.
+ *
+ */
+function _amazons3_generate_image_style(S3Url $source, $style, $destination_temp, S3Url $destination_s3) {
+  // Before we create the file, we need to see if a row exists in
+  // {files_managed}. This can happen when a temporary directory is cleared
+  // by a server reboot or manually by a system administrator.
+  $q = new EntityFieldQuery();
+  $q->entityCondition('entity_type', 'file')
+    ->propertyCondition('uri', $destination_temp);
+  $results = $q->execute();
+  if (!empty($results['file'])) {
+    $file = reset($results['file']);
+    $file = file_load($file->fid);
+    file_delete($file);
+  }
+
+  // Generate the derivative.
+  if (!image_style_create_derivative($style, $source, $destination_temp)) {
+    // Something went horribly wrong, but all we have is a FALSE return. Throw
+    // an exception with something useful.
+    throw new \Exception('Amazon S3 was unable to create an image style derivative. Check the temporary directory configuration and permissions.');
+  }
+
+  // We need to manage our temporary file so it is cleaned by system_cron().
+  $file = amazons3_file_create_object($destination_temp);
+  file_save($file);
+
+  // Register a shutdown function to upload the image to S3.
+  $image = amazons3_image_load($destination_temp);
+  register_shutdown_function(function () use ($image, $destination_s3) {
+    // We have to call both of these to actually flush the image.
+    ob_end_flush();
+    flush();
+
+    // file_unmanaged_copy() will not create any nested directories if
+    // needed.
+    $directory = drupal_dirname($destination_s3);
+    if (!file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
+      watchdog('amazons3', 'Failed to create style directory: %directory', array('%directory' => $directory), WATCHDOG_ERROR);
+    }
+
+    file_unmanaged_copy($image->source, $destination_s3);
+  });
+
+  return $image;
 }
 
 /**
