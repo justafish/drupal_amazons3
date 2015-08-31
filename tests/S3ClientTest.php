@@ -7,6 +7,12 @@ use Drupal\amazons3Test\Stub\StreamWrapperConfiguration;
 use Guzzle\Http\Message\Response;
 use Guzzle\Tests\GuzzleTestCase;
 
+/**
+ * Tests \Drupal\amazons3\S3Client;
+ *
+ * @class S3ClientTest
+ * @package Drupal\amazons3
+ */
 class S3ClientTest extends GuzzleTestCase {
 
   /**
@@ -14,12 +20,13 @@ class S3ClientTest extends GuzzleTestCase {
    */
   public function testFactory() {
     DrupalS3Client::setVariableData([
-      'amazons3_key' => 'placeholder',
-      'amazons3_secret' => 'placeholder',
+      'amazons3_key' => 'key',
+      'amazons3_secret' => 'secret',
     ]);
     $client = DrupalS3Client::factory();
     $this->assertInstanceOf('Aws\S3\S3Client', $client);
-    $this->assertEquals('placeholder', $client->getCredentials()->getAccessKeyId('placeholder'));
+    $this->assertEquals('key', $client->getCredentials()->getAccessKeyId());
+    $this->assertEquals('secret', $client->getCredentials()->getSecretKey());
 
     DrupalS3Client::setVariableData(array());
   }
