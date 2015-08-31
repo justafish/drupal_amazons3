@@ -46,7 +46,7 @@ so they should be unlikely to cause problems.
 - To use Imagemagick, it must be patched to
   [support remote stream wrappers](https://www.drupal.org/node/1695068#comment-8953159).
 
-## Media module, file entities, and plupload
+### Media module, file entities, and plupload
 
 - Drupal's <code>file.inc</code> needs to be
   [patched to add an alter hook](https://www.drupal.org/node/2479523#comment-9873165).
@@ -57,7 +57,7 @@ so they should be unlikely to cause problems.
 - File Entity also needs to be patched
   [to work properly with the Media Internet module](https://www.drupal.org/node/2482757#comment-9889991).
 
-## IMCE
+### IMCE
 
 To use IMCE to manage files in S3:
 
