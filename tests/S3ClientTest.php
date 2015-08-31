@@ -22,11 +22,13 @@ class S3ClientTest extends GuzzleTestCase {
     DrupalS3Client::setVariableData([
       'amazons3_key' => 'key',
       'amazons3_secret' => 'secret',
+      'amazons3_hostname' => 'hostname',
     ]);
     $client = DrupalS3Client::factory();
     $this->assertInstanceOf('Aws\S3\S3Client', $client);
     $this->assertEquals('key', $client->getCredentials()->getAccessKeyId());
     $this->assertEquals('secret', $client->getCredentials()->getSecretKey());
+    $this->assertEquals('hostname', $client->getBaseUrl());
 
     DrupalS3Client::setVariableData(array());
   }
