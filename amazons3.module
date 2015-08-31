@@ -135,34 +135,55 @@ function amazons3_image_deliver() {
       _amazons3_image_wait_transfer($destination_temp);
     }
 
-    // Generate the derivative.
-    if (!image_style_create_derivative($style, $source, $destination_temp)) {
-      // Something went horribly wrong, but all we have is a FALSE return. Throw
-      // an exception with something useful.
-      throw new \Exception('Amazon S3 was unable to create an image style derivative. Check the temporary directory configuration and permissions.');
-    }
-
-    // We need to manage our temporary file so it is cleaned by system_cron().
-    $file = amazons3_file_create_object($destination_temp);
-    file_save($file);
-
-    lock_release($lock_name);
-
-    // Register a shutdown function to upload the image to S3.
-    $image = amazons3_image_load($destination_temp);
-    register_shutdown_function(function() use ($image, $destination) {
-      // We have to call both of these to actually flush the image.
-      ob_end_flush();
-      flush();
-
-      // file_unmanaged_copy() will not create any nested directories if needed.
-      $directory = drupal_dirname($destination);
-      if (!file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
-        watchdog('amazons3', 'Failed to create style directory: %directory', array('%directory' => $directory), WATCHDOG_ERROR);
+    // If the temporary file exists, we assume another thread has generated it
+    // and we can transfer it directly.
+    if (!file_exists($destination_temp)) {
+      // Before we create the file, we need to see if a row exists in
+      // {files_managed}. This can happen when a temporary directory is cleared
+      // by a server reboot or manually by a system administrator.
+      $q = new EntityFieldQuery();
+      $q->entityCondition('entity_type', 'file')
+        ->propertyCondition('uri', $destination_temp);
+      $results = $q->execute();
+      if (!empty($results['file'])) {
+        $file = reset($results['file']);
+        $file = file_load($file->fid);
+        file_delete($file);
       }
 
-      file_unmanaged_copy($image->source, $destination);
-    });
+      // Generate the derivative.
+      if (!image_style_create_derivative($style, $source, $destination_temp)) {
+        // Something went horribly wrong, but all we have is a FALSE return. Throw
+        // an exception with something useful.
+        throw new \Exception('Amazon S3 was unable to create an image style derivative. Check the temporary directory configuration and permissions.');
+      }
+
+      // We need to manage our temporary file so it is cleaned by system_cron().
+      $file = amazons3_file_create_object($destination_temp);
+      file_save($file);
+
+      // Register a shutdown function to upload the image to S3.
+      $image = amazons3_image_load($destination_temp);
+      register_shutdown_function(function() use ($image, $destination) {
+        // We have to call both of these to actually flush the image.
+        ob_end_flush();
+        flush();
+
+        // file_unmanaged_copy() will not create any nested directories if
+        // needed.
+        $directory = drupal_dirname($destination);
+        if (!file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
+          watchdog('amazons3', 'Failed to create style directory: %directory', array('%directory' => $directory), WATCHDOG_ERROR);
+        }
+
+        file_unmanaged_copy($image->source, $destination);
+      });
+    }
+    else {
+      $image = amazons3_image_load($destination_temp);
+    }
+
+    lock_release($lock_name);
 
     // Transfer the image to the client from our temporary directory.
     file_transfer($image->source, array('Content-Type' => $image->info['mime_type'], 'Content-Length' => $image->info['file_size']));
