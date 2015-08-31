@@ -317,10 +317,19 @@ function amazons3_file_like_field() {
 function amazons3_field_widget_form_alter(&$element, &$form_state, $context) {
   $field = $context['field'];
   $instance = $context['instance'];
-  $delta = $context['delta'];
 
   if (in_array($field['type'], amazons3_file_like_field())) {
-    $element[$delta]['#upload_location'] = amazons3_field_widget_uri($field, $instance);
+    if (field_behaviors_widget('multiple values', $instance) == FIELD_BEHAVIOR_DEFAULT) {
+      $delta = $context['delta'];
+      $element[$delta]['#upload_location'] = amazons3_field_widget_uri($field, $instance);
+    }
+    else {
+      // In this case this alter hook is only called once for all items in the
+      // widget.
+      foreach (element_children($element) as $delta) {
+        $element[$delta]['#upload_location'] = amazons3_field_widget_uri($field, $instance);
+      }
+    }
   }
 }
 
