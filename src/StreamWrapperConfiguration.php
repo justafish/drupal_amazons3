@@ -340,6 +340,10 @@ class StreamWrapperConfiguration extends Collection {
   /**
    * Set the stream wrapper configuration using Drupal variables.
    *
+   * @throws \InvalidArgumentException
+   *   Thrown when the StreamWrapper configuration is invalid, such as when a
+   *   bucket is not defined.
+   *
    * @return StreamWrapperConfiguration
    *   A StreamWrapperConfiguration object.
    */
