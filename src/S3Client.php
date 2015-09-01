@@ -89,7 +89,7 @@ class S3Client {
 
     // Set the default client location to the associated bucket.
     if (!isset($config['region']) && $bucket) {
-      self::setRegion($bucket, $client);
+      static::setRegion($bucket, $client);
     }
 
     static::setCommandFactory($client);
