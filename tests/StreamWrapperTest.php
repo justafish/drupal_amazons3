@@ -543,7 +543,13 @@ class StreamWrapperTest extends GuzzleTestCase {
     $wrapper = new StreamWrapper();
     $path = NULL;
     $uri = 's3://bucket.example.com/image.jpg';
-    $wrapper->stream_open($uri, 'r', 0, $path);
+    try {
+      $wrapper->stream_open($uri, 'r', 0, $path);
+    }
+    catch (\PHPUnit_Framework_Error_Warning $e) {
+      // This throws a warning because we aren't mocking any calls, but we don't
+      // care because we just want to call getUri().
+    }
     $this->assertEquals($uri, $wrapper->getUri());
 
     // Instantiate the AWS service builder.
