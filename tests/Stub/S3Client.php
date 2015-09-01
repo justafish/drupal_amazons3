@@ -62,10 +62,9 @@ class S3Client extends \Drupal\amazons3\S3Client {
 
   /**
    * {@inheritdoc}
-   *
-   * This stub method simply records if a getBucketLocation call has been made.
    */
   public static function getBucketLocation($bucket, AwsS3Client $client) {
     static::$getBucketLocationCalled = TRUE;
+    return 'fake-region';
   }
 }
