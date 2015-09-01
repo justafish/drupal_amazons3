@@ -4,6 +4,7 @@ use Aws\Common\Credentials\Credentials;
 use Drupal\amazons3\Exception\S3ConnectValidationException;
 use Drupal\amazons3\S3Client;
 use Drupal\amazons3\S3Url;
+use Drupal\amazons3\StreamWrapperConfiguration;
 
 /**
  * @file
@@ -36,6 +37,23 @@ function amazons3_stream_wrappers() {
 
   if (!class_exists('Drupal\amazons3\StreamWrapper')) {
     watchdog('amazons3', 'The AmazonS3 StreamWrapper class is missing. Make sure all module updates have run. Otherwise, run drush composer-rebuild and drush composer-manager update to update your vendor directory.');
+    return array();
+  }
+
+  // If the module isn't configured yet, don't register the stream wrapper.
+  try {
+    StreamWrapperConfiguration::fromDrupalVariables();
+  }
+  catch (\InvalidArgumentException $e) {
+
+    if (current_path() == 'admin/config/media/file-system') {
+      drupal_set_message(t('The AmazonS3 module <a href="@s3-configure">needs to be configured</a> before setting it as a download method.', array(
+        '@s3-configure' => url('admin/config/media/amazons3', array(
+          'query' => array('destination' => current_path())
+        ))
+      )));
+    }
+
     return array();
   }
 
@@ -368,7 +386,7 @@ function amazons3_upload_location($uri_scheme, $bucket = NULL, $file_directory =
 
     // If no bucket is specified, but this is an S3 URI, use the default bucket.
     if (empty($destination)) {
-      $config = \Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables();
+      $config = StreamWrapperConfiguration::fromDrupalVariables();
       $destination = $config->getBucket();
     }
     if (!empty($file_directory)) {
@@ -417,7 +435,7 @@ function amazons3_file_entity_upload_destination_uri_alter(&$result, array $para
     catch (\InvalidArgumentException $e) {
       // We couldn't parse the URL, so check to see if it is bare.
       if ($result == 's3://') {
-        $config = \Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables();
+        $config = StreamWrapperConfiguration::fromDrupalVariables();
         $bucket = $config->getBucket();
       }
       else {
@@ -429,7 +447,7 @@ function amazons3_file_entity_upload_destination_uri_alter(&$result, array $para
         $bucket = $field['settings']['amazons3_bucket'];
       }
       else {
-        $config = \Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables();
+        $config = StreamWrapperConfiguration::fromDrupalVariables();
         $bucket = $config->getBucket();
       }
     }
@@ -474,7 +492,7 @@ function amazons3_file_stream_wrapper_uri_normalize_alter(&$uri, $scheme, $targe
  *   A fully-qualified s3:// URL.
  */
 function amazons3_uri_add_bucket($target) {
-  $config = \Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables();
+  $config = StreamWrapperConfiguration::fromDrupalVariables();
   $url = new S3Url($config->getBucket(), $target);
   return (string) $url;
 }
