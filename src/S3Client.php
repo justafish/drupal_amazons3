@@ -75,6 +75,13 @@ class S3Client {
       $config['credentials'] = new Credentials(static::variable_get('amazons3_key'), static::variable_get('amazons3_secret'));
     }
 
+    if (!isset($config['endpoint'])) {
+      $endpoint = static::variable_get('amazons3_hostname');
+      if(!empty($endpoint)){
+        $config['endpoint'] = $endpoint;
+      }
+    }
+
     $curl_defaults = array(
       CURLOPT_CONNECTTIMEOUT => 30,
     );
