@@ -123,7 +123,7 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     if (!$this->getClient()) {
       /** @var S3Client $name */
       $name = static::$s3ClientClass;
-      $this->setClient($name::factory());
+      $this->setClient($name::factory(array('region' => $this->config->getRegion())));
     }
 
     if ($this->config->isCaching() && !static::$cache) {

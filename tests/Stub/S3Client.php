@@ -2,6 +2,7 @@
 
 namespace Drupal\amazons3Test\Stub;
 
+use Aws\S3\S3Client as AwsS3Client;
 use Drupal\amazons3Test\DrupalAdapter\Bootstrap;
 use Guzzle\Service\Command\Factory\AliasFactory;
 
@@ -15,17 +16,26 @@ use Guzzle\Service\Command\Factory\AliasFactory;
 class S3Client extends \Drupal\amazons3\S3Client {
   use Bootstrap;
 
-  protected static $called = FALSE;
+  protected static $factoryCalled = FALSE;
+  protected static $getBucketLocationCalled = FALSE;
 
   public static function resetCalled() {
-    static::$called = FALSE;
+    static::$factoryCalled = FALSE;
+    static::$getBucketLocationCalled = FALSE;
   }
 
   /**
    * @return boolean
    */
-  public static function isCalled() {
-    return static::$called;
+  public static function isFactoryCalled() {
+    return static::$factoryCalled;
+  }
+
+  /**
+   * @return boolean
+   */
+  public static function isGetBucketLocationCalled() {
+    return self::$getBucketLocationCalled;
   }
 
   /**
@@ -45,8 +55,16 @@ class S3Client extends \Drupal\amazons3\S3Client {
   /**
    * {@inheritdoc}
    */
-  public static function factory($config = array()) {
-    static::$called = TRUE;
-    return parent::factory($config);
+  public static function factory($config = array(), $bucket = NULL) {
+    static::$factoryCalled = TRUE;
+    return parent::factory($config, $bucket);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getBucketLocation($bucket, AwsS3Client $client) {
+    static::$getBucketLocationCalled = TRUE;
+    return 'fake-region';
   }
 }

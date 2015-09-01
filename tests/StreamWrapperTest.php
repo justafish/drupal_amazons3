@@ -99,6 +99,7 @@ class StreamWrapperTest extends GuzzleTestCase {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
       'caching' => FALSE,
+      'region' => 'us-east-1',
     ]);
     $wrapper = new StreamWrapper($config);
     $this->assertNotNull($wrapper->getClient());
@@ -331,7 +332,7 @@ class StreamWrapperTest extends GuzzleTestCase {
     StreamWrapper::setClient(NULL);
     DrupalS3Client::resetCalled();
     new StreamWrapper();
-    $this->assertTrue(DrupalS3Client::isCalled());
+    $this->assertTrue(DrupalS3Client::isFactoryCalled());
   }
 
   /**

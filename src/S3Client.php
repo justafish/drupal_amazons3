@@ -8,6 +8,7 @@ namespace Drupal\amazons3;
  */
 
 use Aws\Common\Credentials\Credentials;
+use Aws\S3\S3Client as AwsS3Client;
 use Drupal\amazons3\Exception\S3ConnectValidationException;
 use Guzzle\Common\Collection;
 use Guzzle\Service\Command\Factory\AliasFactory;
@@ -63,10 +64,13 @@ class S3Client {
    *   An array of configuration options to pass to \Aws\S3\S3Client::factory().
    *   If 'credentials' are set they will be used instead of aws_key and
    *   aws_secret.
+   * @param string $bucket
+   *   (optional) The bucket to associate this client with. If empty, the client
+   *   will default to $config['region'], and then the us-east-1 region.
    *
    * @return \Aws\S3\S3Client
    */
-  public static function factory($config = array()) {
+  public static function factory($config = array(), $bucket = NULL) {
     if (!isset($config['credentials'])) {
       $config['credentials'] = new Credentials(static::variable_get('amazons3_key'), static::variable_get('amazons3_secret'));
     }
@@ -88,7 +92,17 @@ class S3Client {
 
     $config['curl.options'] += $curl_defaults;
 
-    $client = \Aws\S3\S3Client::factory($config);
+    $client = AwsS3Client::factory($config);
+
+    // Set the default client location to the associated bucket.
+    if (!isset($config['region']) && $bucket) {
+      $region = static::getBucketLocation($bucket, $client);
+      if (!empty($region) && $client->getRegion() != $region) {
+        $config['region'] = $region;
+        $client = AwsS3Client::factory($config);
+      }
+    }
+
     static::setCommandFactory($client);
 
     return $client;
@@ -109,7 +123,7 @@ class S3Client {
    * @throws S3ConnectValidationException
    *   Thrown when credentials are invalid or the bucket does not exist.
    */
-  public static function validateBucketExists($bucket, \Aws\S3\S3Client $client) {
+  public static function validateBucketExists($bucket, AwsS3Client $client) {
     if (!$client->doesBucketExist($bucket, FALSE)) {
       throw new S3ConnectValidationException('The S3 access credentials are invalid or the bucket does not exist.');
     }
@@ -130,5 +144,20 @@ class S3Client {
       'Guzzle\Service\Command\Factory\ServiceDescriptionFactory'
     );
     $client->setCommandFactory($default);
+  }
+
+  /**
+   * Get the region for an S3Client for a specific bucket.
+   *
+   * @param string $bucket
+   *   The bucket to get the region for.
+   * @param \Aws\S3\S3Client $client
+   *   The S3Client to use.
+   *
+   * @return string
+   *   The region for the bucket.
+   */
+  public static function getBucketLocation($bucket, AwsS3Client $client) {
+    return $client->getBucketLocation(array('Bucket' => $bucket))->get('Location');
   }
 }
