@@ -76,6 +76,21 @@ class S3ClientTest extends GuzzleTestCase {
   }
 
   /**
+   * @covers \Drupal\amazons3\S3Client::setRegion
+   */
+  public function testSetRegion() {
+    $client = $this->mockClient();
+    $responseBody =<<<EOD
+<?xml version="1.0" encoding="UTF-8"?>
+<LocationConstraint xmlns="http://s3.amazonaws.com/doc/2006-03-01/">fake-region</LocationConstraint>
+EOD;
+
+    $this->setMockResponse($client, array(new Response(200, array(), $responseBody)));
+    DrupalS3Client::setRegion('example-bucket', $client);
+    $this->assertEquals('fake-region', $client->getRegion());
+  }
+
+  /**
    * Generate a mock client ready to mock HTTP requests.
    *
    * @return \Aws\S3\S3Client

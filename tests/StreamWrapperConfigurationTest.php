@@ -48,6 +48,9 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
     $config->setBucket('different-bucket');
     $this->assertEquals('different-bucket', $config->getBucket());
 
+    $config->setRegion('different-region');
+    $this->assertEquals('different-region', $config->getRegion());
+
     $config->enableCaching();
     $this->assertTrue($config->isCaching());
 
