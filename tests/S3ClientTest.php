@@ -21,9 +21,11 @@ class S3ClientTest extends GuzzleTestCase {
       'amazons3_key' => 'placeholder',
       'amazons3_secret' => 'placeholder',
     ]);
-    $client = DrupalS3Client::factory();
+    DrupalS3Client::resetCalled();
+    $client = DrupalS3Client::factory(array(), 'fake-bucket');
     $this->assertInstanceOf('Aws\S3\S3Client', $client);
-    $this->assertEquals('placeholder', $client->getCredentials()->getAccessKeyId('placeholder'));
+    $this->assertEquals('placeholder', $client->getCredentials()->getAccessKeyId());
+    $this->assertTrue(DrupalS3Client::isSetRegionCalled());
 
     DrupalS3Client::setVariableData(array());
   }
@@ -86,7 +88,7 @@ class S3ClientTest extends GuzzleTestCase {
 EOD;
 
     $this->setMockResponse($client, array(new Response(200, array(), $responseBody)));
-    DrupalS3Client::setRegion('example-bucket', $client);
+    \Drupal\amazons3\S3Client::setRegion('example-bucket', $client);
     $this->assertEquals('fake-region', $client->getRegion());
   }
 

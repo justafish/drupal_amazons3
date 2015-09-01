@@ -332,7 +332,7 @@ class StreamWrapperTest extends GuzzleTestCase {
     StreamWrapper::setClient(NULL);
     DrupalS3Client::resetCalled();
     new StreamWrapper();
-    $this->assertTrue(DrupalS3Client::isCalled());
+    $this->assertTrue(DrupalS3Client::isFactoryCalled());
   }
 
   /**
