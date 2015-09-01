@@ -75,6 +75,7 @@ class StreamWrapperConfiguration extends Collection {
     $defaults = array(
       'hostname' => NULL,
       'bucket' => NULL,
+      'region' => 'us-east-1',
       'torrentPaths' => new MatchablePaths(),
       'presignedPaths' => new MatchablePaths(),
       'saveAsPaths' => new MatchablePaths(),
@@ -189,6 +190,26 @@ class StreamWrapperConfiguration extends Collection {
    */
   public function setPresignedPaths(MatchablePaths $presignedPaths) {
     $this->data['presignedPaths'] = $presignedPaths;
+  }
+
+  /**
+   * Get the region associated with this stream wrapper.
+   *
+   * @return string
+   *   The region, such as 'us-east-1'.
+   */
+  public function getRegion() {
+    return $this->data['region'];
+  }
+
+  /**
+   * Set the region associated with this stream wrapper.
+   *
+   * @param string $region
+   *   The region, such as 'us-east-1'.
+   */
+  public function setRegion($region) {
+    $this->data['region'] = $region;
   }
 
   /**

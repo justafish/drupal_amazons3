@@ -45,8 +45,8 @@ class S3Client extends \Drupal\amazons3\S3Client {
   /**
    * {@inheritdoc}
    */
-  public static function factory($config = array()) {
+  public static function factory($config = array(), $bucket = NULL) {
     static::$called = TRUE;
-    return parent::factory($config);
+    return parent::factory($config, $bucket);
   }
 }

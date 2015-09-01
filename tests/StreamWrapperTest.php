@@ -99,6 +99,7 @@ class StreamWrapperTest extends GuzzleTestCase {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
       'caching' => FALSE,
+      'region' => 'us-east-1',
     ]);
     $wrapper = new StreamWrapper($config);
     $this->assertNotNull($wrapper->getClient());

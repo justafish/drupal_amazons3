@@ -410,9 +410,9 @@ function amazons3_file_entity_upload_destination_uri_alter(&$result, array $para
   if ($params['uri_scheme'] == 's3') {
     try {
       $url = S3Url::factory($result);
-      $s3 = S3Client::factory();
-      S3Client::validateBucketExists($url->getBucket(), $s3, new \Drupal\amazons3\Cache());
       $bucket = $url->getBucket();
+      $s3 = S3Client::factory(array(), $bucket);
+      S3Client::validateBucketExists($bucket, $s3, new \Drupal\amazons3\Cache());
     }
     catch (\InvalidArgumentException $e) {
       // We couldn't parse the URL, so check to see if it is bare.
@@ -449,8 +449,9 @@ function amazons3_file_stream_wrapper_uri_normalize_alter(&$uri, $scheme, $targe
       // Validate that the bucket exists. Sometimes we might be passed in URIs
       // without a bucket, like s3://image.jpg. If image.jpg is not a bucket, we
       // assume that image.jpg is supposed to be created in the default bucket.
-      $s3 = S3Client::factory();
-      S3Client::validateBucketExists($url->getBucket(), $s3, new \Drupal\amazons3\Cache());
+      $bucket = $url->getBucket();
+      $s3 = S3Client::factory(array(), $bucket);
+      S3Client::validateBucketExists($bucket, $s3, new \Drupal\amazons3\Cache());
     }
     catch (\InvalidArgumentException $e) {
       // Catch if S3Url::factory() can not parse $uri. That happens if we are
@@ -552,7 +553,7 @@ function amazons3_form_bucket_validate(array &$element, array &$form_state, arra
   }
 
   try {
-    $s3 = S3Client::factory($config);
+    $s3 = S3Client::factory($config, $bucket);
     S3Client::validateBucketExists($bucket, $s3);
   }
   catch (S3ConnectValidationException $e) {

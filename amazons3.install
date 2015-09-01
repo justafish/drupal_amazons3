@@ -25,7 +25,7 @@ function amazons3_requirements($phase) {
   try {
     $config = \Drupal\amazons3\StreamWrapperConfiguration::fromDrupalVariables();
     try {
-      $client = \Drupal\amazons3\S3Client::factory();
+      $client = \Drupal\amazons3\S3Client::factory(array(), $config->getBucket());
       \Drupal\amazons3\S3Client::validateBucketExists($config->getBucket(), $client);
     }
     catch (\Drupal\amazons3\Exception\S3ConnectValidationException $e) {

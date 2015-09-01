@@ -63,10 +63,13 @@ class S3Client {
    *   An array of configuration options to pass to \Aws\S3\S3Client::factory().
    *   If 'credentials' are set they will be used instead of aws_key and
    *   aws_secret.
+   * @param string $bucket
+   *   (optional) The bucket to associate this client with. If empty, the client
+   *   will default to $config['region'], and then the us-east-1 region.
    *
    * @return \Aws\S3\S3Client
    */
-  public static function factory($config = array()) {
+  public static function factory($config = array(), $bucket = NULL) {
     if (!isset($config['credentials'])) {
       $config['credentials'] = new Credentials(static::variable_get('amazons3_key'), static::variable_get('amazons3_secret'));
     }
@@ -82,6 +85,12 @@ class S3Client {
     $config['curl.options'] += $curl_defaults;
 
     $client = \Aws\S3\S3Client::factory($config);
+
+    // Set the default client location to the associated bucket.
+    if (!isset($config['region']) && $bucket) {
+      $client->setRegion($client->getBucketLocation(array('Bucket' => $bucket)));
+    }
+
     static::setCommandFactory($client);
 
     return $client;
