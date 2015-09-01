@@ -17,11 +17,11 @@ class S3Client extends \Drupal\amazons3\S3Client {
   use Bootstrap;
 
   protected static $factoryCalled = FALSE;
-  protected static $setRegionCalled = FALSE;
+  protected static $getBucketLocationCalled = FALSE;
 
   public static function resetCalled() {
     static::$factoryCalled = FALSE;
-    static::$setRegionCalled = FALSE;
+    static::$getBucketLocationCalled = FALSE;
   }
 
   /**
@@ -34,8 +34,8 @@ class S3Client extends \Drupal\amazons3\S3Client {
   /**
    * @return boolean
    */
-  public static function isSetRegionCalled() {
-    return self::$setRegionCalled;
+  public static function isGetBucketLocationCalled() {
+    return self::$getBucketLocationCalled;
   }
 
   /**
@@ -63,9 +63,9 @@ class S3Client extends \Drupal\amazons3\S3Client {
   /**
    * {@inheritdoc}
    *
-   * This stub method simply records if a setRegion call has been made.
+   * This stub method simply records if a getBucketLocation call has been made.
    */
-  public static function setRegion($bucket, AwsS3Client $client) {
-    static::$setRegionCalled = TRUE;
+  public static function getBucketLocation($bucket, AwsS3Client $client) {
+    static::$getBucketLocationCalled = TRUE;
   }
 }

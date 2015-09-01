@@ -89,7 +89,11 @@ class S3Client {
 
     // Set the default client location to the associated bucket.
     if (!isset($config['region']) && $bucket) {
-      static::setRegion($bucket, $client);
+      $region = static::getBucketLocation($bucket, $client);
+      if (!empty($region) && $client->getRegion() != $region) {
+        $config['region'] = $region;
+        $client = AwsS3Client::factory($config);
+      }
     }
 
     static::setCommandFactory($client);
@@ -136,14 +140,17 @@ class S3Client {
   }
 
   /**
-   * Set the region for an S3Client for a specific bucket.
+   * Get the region for an S3Client for a specific bucket.
    *
    * @param string $bucket
-   *   The bucket to set the region from.
+   *   The bucket to get the region for.
    * @param \Aws\S3\S3Client $client
-   *   The S3Client to set the region on.
+   *   The S3Client to use.
+   *
+   * @return string
+   *   The region for the bucket.
    */
-  public static function setRegion($bucket, AwsS3Client $client) {
-    $client->setRegion($client->getBucketLocation(array('Bucket' => $bucket))->get('Location'));
+  public static function getBucketLocation($bucket, AwsS3Client $client) {
+    return $client->getBucketLocation(array('Bucket' => $bucket))->get('Location');
   }
 }
