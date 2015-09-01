@@ -13,7 +13,7 @@
         }
     ],
     "require": {
-        "aws/aws-sdk-php": "2.8.6-p1",
+        "aws/aws-sdk-php": "2.8.19-p1",
         "capgemini/drupal_doctrine_cache": "0.0.1-p1",
         "doctrine/cache": "~1.4"
     },
