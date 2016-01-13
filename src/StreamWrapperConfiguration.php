@@ -75,7 +75,7 @@ class StreamWrapperConfiguration extends Collection {
     $defaults = array(
       'hostname' => NULL,
       'bucket' => NULL,
-      'region' => 'us-east-1',
+      'region' => NULL,
       'torrentPaths' => new MatchablePaths(),
       'presignedPaths' => new MatchablePaths(),
       'saveAsPaths' => new MatchablePaths(),
@@ -96,6 +96,7 @@ class StreamWrapperConfiguration extends Collection {
   protected static function required() {
     $required = array(
       'bucket',
+      'region',
     );
     return $required;
   }
@@ -369,7 +370,10 @@ class StreamWrapperConfiguration extends Collection {
    *   A StreamWrapperConfiguration object.
    */
   public static function fromDrupalVariables() {
-    $config = self::fromConfig(array('bucket' => static::variable_get('amazons3_bucket', NULL)));
+    $config = self::fromConfig(array(
+      'bucket' => static::variable_get('amazons3_bucket', NULL),
+      'region' => static::variable_get('amazons3_region', NULL)
+    ));
     $defaults = $config->defaults();
 
     $config->setHostname(static::variable_get('amazons3_hostname', $defaults['hostname']));

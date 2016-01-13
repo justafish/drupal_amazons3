@@ -28,6 +28,16 @@ function amazons3_admin() {
     '#element_validate' => array('amazons3_form_bucket_validate'),
   );
 
+  $client = \Aws\S3\S3Client::factory();
+
+  $form['amazons3_region'] = array(
+    '#type' => 'select',
+    '#title' => t('Default region'),
+    '#default_value' => variable_get('amazons3_region', ''),
+    '#required' => TRUE,
+    '#options' => array_combine(array_keys($client->getRegions()), array_keys($client->getRegions())),
+  );
+
   $form['amazons3_cache'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enable metadata caching'),

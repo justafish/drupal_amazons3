@@ -566,6 +566,7 @@ function _amazons3_field_configuration(array &$form, $type) {
     if ($type == $types) {
       $settings = &$form['field']['settings'];
       $bucket_setting = isset($form['#field']['settings']['amazons3_bucket']) ? $form['#field']['settings']['amazons3_bucket'] : '';
+      $region_setting = isset($form['#field']['settings']['amazons3_region']) ? $form['#field']['settings']['amazons3_region'] : '';
 
       $settings['uri_scheme']['#weight'] = 50;
 
@@ -586,6 +587,28 @@ function _amazons3_field_configuration(array &$form, $type) {
         ),
         '#default_value' => $bucket_setting,
         '#element_validate' => array('amazons3_form_bucket_validate'),
+        '#weight' => 51,
+      );
+
+      $client = \Aws\S3\S3Client::factory();
+
+      $settings['amazons3_region'] = array(
+        '#type' => 'select',
+        '#title' => t('Amazon S3 region'),
+        '#description' => t(
+          'Use <em>default region</em> to use the site-wide default region <a href="@config">currently set to %region</a>.',
+          array(
+            '@config' => url('admin/config/media/amazons3'),
+            '%region' => variable_get('amazons3_region', ''),
+          )
+        ),
+        '#states' => array(
+          'visible' => array(
+            ':input[name="field[settings][uri_scheme]"]' => array('value' => 's3'),
+          ),
+        ),
+        '#default_value' => $region_setting,
+        '#options' => array(0 => t('- default region -')) + array_combine(array_keys($client->getRegions()), array_keys($client->getRegions())),
         '#weight' => 51,
       );
     }
@@ -619,6 +642,13 @@ function amazons3_form_bucket_validate(array &$element, array &$form_state, arra
   $config = array();
   if (isset($form_state['values']['amazons3_key']) && isset($form_state['values']['amazons3_secret'])) {
     $config['credentials'] = new Credentials($form_state['values']['amazons3_key'], $form_state['values']['amazons3_secret']);
+  }
+
+  if (isset($form_state['values']['amazons3_region'])) {
+    $config['region'] = $form_state['values']['amazons3_region'];
+  }
+  elseif (isset($form_state['values']['field']['settings']['amazons3_region']) && $form_state['values']['field']['settings']['amazons3_region']) {
+    $config['region'] = $form_state['values']['field']['settings']['amazons3_region'];
   }
 
   if (!empty($hostname)) {
