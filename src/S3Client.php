@@ -92,16 +92,15 @@ class S3Client {
 
     $config['curl.options'] += $curl_defaults;
 
-    $client = AwsS3Client::factory($config);
-
     // Set the default client location to the associated bucket.
-    if (!isset($config['region']) && $bucket) {
-      $region = static::getBucketLocation($bucket, $client);
-      if (!empty($region) && $client->getRegion() != $region) {
+    if (!isset($config['region'])) {
+      $region = static::variable_get('amazons3_region');
+      if (!empty($region)) {
         $config['region'] = $region;
-        $client = AwsS3Client::factory($config);
       }
     }
+
+    $client = AwsS3Client::factory($config);
 
     static::setCommandFactory($client);
 

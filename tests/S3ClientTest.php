@@ -22,6 +22,7 @@ class S3ClientTest extends GuzzleTestCase {
       'amazons3_key' => 'key',
       'amazons3_secret' => 'secret',
       'amazons3_hostname' => 'hostname',
+      'amazons3_region' => 'region',
     ]);
     DrupalS3Client::resetCalled();
     $client = DrupalS3Client::factory(array(), 'fake-bucket');
@@ -29,7 +30,7 @@ class S3ClientTest extends GuzzleTestCase {
     $this->assertEquals('key', $client->getCredentials()->getAccessKeyId());
     $this->assertEquals('secret', $client->getCredentials()->getSecretKey());
     $this->assertEquals('hostname', $client->getBaseUrl());
-    $this->assertTrue(DrupalS3Client::isGetBucketLocationCalled());
+    $this->assertEquals('region', $client->getRegion());
 
     DrupalS3Client::setVariableData(array());
   }

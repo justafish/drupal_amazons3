@@ -17,7 +17,7 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
    * @covers Drupal\amazons3\StreamWrapperConfiguration::required
    */
   public function testFromConfig() {
-    $settings = array('bucket' => 'bucket');
+    $settings = array('bucket' => 'bucket', 'region' => 'region');
     $config = StreamWrapperConfiguration::fromConfig($settings);
     $this->assertInstanceOf('Drupal\amazons3\StreamWrapperConfiguration', $config);
   }
@@ -43,7 +43,7 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
    * @covers Drupal\amazons3\StreamWrapperConfiguration
    */
   public function testSetters() {
-    $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket'));
+    $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket', 'region' => 'region'));
 
     $config->setBucket('different-bucket');
     $this->assertEquals('different-bucket', $config->getBucket());
@@ -94,7 +94,7 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
    * @expectedException \LogicException
    */
   public function testCacheLifetimeException() {
-    $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket'));
+    $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket', 'region' => 'region'));
     $config->setCacheLifetime(0);
   }
 
@@ -103,7 +103,7 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
    * @expectedException \InvalidArgumentException
    */
   public function testCloudFrontCredentials() {
-    $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket'));
+    $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket', 'region' => 'region'));
     $config->setCloudFrontCredentials('/does-not-exist', 'asdf');
   }
 
@@ -112,7 +112,7 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
    * @expectedException \LogicException
    */
   public function testCloudFrontNotSetUp() {
-    $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket'));
+    $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket', 'region' => 'region'));
     $config->getCloudFront();
   }
 
@@ -120,7 +120,7 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
    * @covers Drupal\amazons3\StreamWrapperConfiguration::fromConfig
    */
   public function testDefaultHostname() {
-    $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket'));
+    $config = StreamWrapperConfiguration::fromConfig(array('bucket' => 'bucket', 'region' => 'region'));
     $this->assertEquals('bucket.s3.amazonaws.com', $config->getDomain());
   }
 
@@ -131,6 +131,7 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
   public function testFromDrupalVariables() {
     StreamWrapperConfiguration::setVariableData([
       'amazons3_bucket' => 'default.example.com',
+      'amazons3_region' => 'region',
       'amazons3_hostname' => 'api.example.com',
       'amazons3_cname' => TRUE,
       'amazons3_domain' => 'static.example.com',
@@ -158,6 +159,7 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
 
     StreamWrapperConfiguration::setVariableData([
       'amazons3_bucket' => 'default.example.com',
+      'amazons3_region' => 'region',
       'amazons3_cname' => TRUE,
       'amazons3_cache' => FALSE,
     ]);
@@ -168,6 +170,7 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
     // When the bucket has a dot, check that the bucket is not in the domain.
     StreamWrapperConfiguration::setVariableData([
       'amazons3_bucket' => 'default.example.com',
+      'amazons3_region' => 'region',
     ]);
     $config = StreamWrapperConfiguration::fromDrupalVariables();
     $this->assertEquals('s3.amazonaws.com', $config->getDomain());
@@ -176,6 +179,7 @@ class StreamWrapperConfigurationTest extends \PHPUnit_Framework_TestCase {
     // subdomain.
     StreamWrapperConfiguration::setVariableData([
       'amazons3_bucket' => 'bucket',
+      'amazons3_region' => 'region',
     ]);
     $config = StreamWrapperConfiguration::fromDrupalVariables();
     $this->assertEquals('bucket.s3.amazonaws.com', $config->getDomain());

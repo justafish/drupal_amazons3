@@ -36,6 +36,7 @@ class StreamWrapperTest extends GuzzleTestCase {
 
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'caching' => FALSE,
       'expiration' => 0,
     ]);
@@ -63,6 +64,7 @@ class StreamWrapperTest extends GuzzleTestCase {
 
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'caching' => FALSE,
     ]);
     StreamWrapper::setDefaultConfig($config);
@@ -81,6 +83,7 @@ class StreamWrapperTest extends GuzzleTestCase {
   public function testConstructDefaultConfig() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'defaultconfig.example.com',
+      'region' => 'region',
       'caching' => FALSE,
     ]);
     StreamWrapper::setDefaultConfig($config);
@@ -98,6 +101,7 @@ class StreamWrapperTest extends GuzzleTestCase {
     StreamWrapper::setClient(null);
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'caching' => FALSE,
       'region' => 'us-east-1',
     ]);
@@ -113,6 +117,7 @@ class StreamWrapperTest extends GuzzleTestCase {
   public function testCreateCache() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'caching' => TRUE,
       'expiration' => 0,
     ]);
@@ -341,6 +346,7 @@ class StreamWrapperTest extends GuzzleTestCase {
   public function testBasename() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'caching' => FALSE,
       'expiration' => 0,
     ]);
@@ -370,6 +376,7 @@ class StreamWrapperTest extends GuzzleTestCase {
   public function testSaveAs() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'caching' => FALSE,
       'expiration' => 0,
       'saveAsPaths' => new MatchablePaths(BasicPath::factory(array('force-download/.*'))),
@@ -385,6 +392,7 @@ class StreamWrapperTest extends GuzzleTestCase {
   public function testSaveAsExcluded() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'caching' => FALSE,
       'expiration' => 0,
       'saveAsPaths' => new MatchablePaths(BasicPath::factory(array('force-download/*'))),
@@ -404,6 +412,7 @@ class StreamWrapperTest extends GuzzleTestCase {
   public function testSaveAsAll() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'caching' => FALSE,
       'expiration' => 0,
       'saveAsPaths' => new MatchablePaths(BasicPath::factory(array('*'))),
@@ -423,6 +432,7 @@ class StreamWrapperTest extends GuzzleTestCase {
   public function testAttachmentSpace() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'caching' => FALSE,
       'expiration' => 0,
       'saveAsPaths' => new MatchablePaths(BasicPath::factory(array('force-download/.*'))),
@@ -443,6 +453,7 @@ class StreamWrapperTest extends GuzzleTestCase {
   public function testTorrentPath() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'caching' => FALSE,
       'expiration' => 0,
       'torrentPaths' => new MatchablePaths(BasicPath::factory(array('torrents/.*'))),
@@ -461,6 +472,7 @@ class StreamWrapperTest extends GuzzleTestCase {
   public function testPresignedPath() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'caching' => FALSE,
       'expiration' => 0,
       'presignedPaths' => new MatchablePaths(PresignedPath::factory(array('presigned/.*' => 30))),
@@ -487,6 +499,7 @@ class StreamWrapperTest extends GuzzleTestCase {
   public function testCustomDomain() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'domain' => 'static.example.com',
       'caching' => FALSE,
       'expiration' => 0,
@@ -504,6 +517,7 @@ class StreamWrapperTest extends GuzzleTestCase {
   public function testNoCustomDomain() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'caching' => FALSE,
     ]);
     $wrapper = new StreamWrapper($config);
@@ -519,6 +533,7 @@ class StreamWrapperTest extends GuzzleTestCase {
   public function testReducedRedundancyStorage() {
     $config = StreamWrapperConfiguration::fromConfig([
       'bucket' => 'bucket.example.com',
+      'region' => 'region',
       'caching' => FALSE,
       'reducedRedundancyPaths' => new MatchablePaths(BasicPath::factory(array('*'))),
     ]);

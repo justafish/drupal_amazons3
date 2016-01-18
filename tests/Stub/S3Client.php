@@ -17,11 +17,9 @@ class S3Client extends \Drupal\amazons3\S3Client {
   use Bootstrap;
 
   protected static $factoryCalled = FALSE;
-  protected static $getBucketLocationCalled = FALSE;
 
   public static function resetCalled() {
     static::$factoryCalled = FALSE;
-    static::$getBucketLocationCalled = FALSE;
   }
 
   /**
@@ -29,13 +27,6 @@ class S3Client extends \Drupal\amazons3\S3Client {
    */
   public static function isFactoryCalled() {
     return static::$factoryCalled;
-  }
-
-  /**
-   * @return boolean
-   */
-  public static function isGetBucketLocationCalled() {
-    return self::$getBucketLocationCalled;
   }
 
   /**
@@ -60,11 +51,4 @@ class S3Client extends \Drupal\amazons3\S3Client {
     return parent::factory($config, $bucket);
   }
 
-  /**
-   * {@inheritdoc}
-   */
-  public static function getBucketLocation($bucket, AwsS3Client $client) {
-    static::$getBucketLocationCalled = TRUE;
-    return 'fake-region';
-  }
 }
