@@ -58,6 +58,7 @@ function amazons3_uninstall() {
   variable_del('amazons3_bucket');
   variable_del('amazons3_cname');
   variable_del('amazons3_domain');
+  variable_del('amazons3_domain_scheme');
   variable_del('amazons3_cache');
   variable_del('amazons3_cache_expiration');
   variable_del('amazons3_torrents');

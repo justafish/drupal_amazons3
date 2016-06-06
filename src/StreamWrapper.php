@@ -247,6 +247,8 @@ class StreamWrapper extends \Aws\S3\StreamWrapper implements \DrupalStreamWrappe
     }
     // @codeCoverageIgnoreEnd
     else {
+      $args['Scheme'] = $this->config->getDomainScheme();
+
       // Generate a standard URL.
       $url = $this->getS3Url($path, $expiry, $args);
     }

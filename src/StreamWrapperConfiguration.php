@@ -83,6 +83,7 @@ class StreamWrapperConfiguration extends Collection {
       'cloudFrontPrivateKey' => NULL,
       'cloudFrontKeyPairId' => NULL,
       'domain' => NULL,
+      'domainScheme' => 'https',
       'caching' => FALSE,
       'cacheLifetime' => NULL,
       'reducedRedundancyPaths' => new MatchablePaths(),
@@ -300,6 +301,20 @@ class StreamWrapperConfiguration extends Collection {
   }
 
   /**
+   * @return string
+   */
+  public function getDomainScheme() {
+    return $this->data['domainScheme'];
+  }
+
+  /**
+   * @param string $scheme
+   */
+  public function setDomainScheme($scheme) {
+    $this->data['domainScheme'] = $scheme;
+  }
+
+  /**
    * @return boolean
    */
   public function isCaching() {
@@ -381,6 +396,7 @@ class StreamWrapperConfiguration extends Collection {
     // CNAME support for customizing S3 URLs.
     if (static::variable_get('amazons3_cname', FALSE)) {
       $domain = static::variable_get('amazons3_domain', $defaults['domain']);
+
       if (strlen($domain) > 0) {
         $config->setDomain($domain);
       }
@@ -393,6 +409,9 @@ class StreamWrapperConfiguration extends Collection {
         $config->setCloudFrontCredentials($path, $keyPairId);
         $config->serveWithCloudFront();
       }
+
+      $scheme = static::variable_get('amazons3_domain_scheme', $defaults['domainScheme']);
+      $config->setDomainScheme($scheme);
     }
     else {
       $config->setDomain(static::getS3Domain($config->getBucket()));
